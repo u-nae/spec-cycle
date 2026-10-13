@@ -437,7 +437,7 @@ test('READY verdict creates a handoff with acceptance coverage and refuses a col
   const handoff = readYaml(path.join(project, 'run', 'tdd-handoff.yaml'));
   assert.equal(handoff.verdict, 'READY');
   assert.deepEqual(handoff.source_tasks, [{ task_id: '4', title: 'Process payment through approval policy', route: 'BOTH', acceptance_refs: ['AC-PAY-1', 'AC-PAY-2'] }]);
-  assert.deepEqual(handoff.acceptance_coverage, { 'AC-PAY-1': ['T4-flow'], 'AC-PAY-2': ['T4-payment_approval-R1', 'T4-payment_approval-R2', 'T4-payment_approval-R3'] });
+  assert.deepEqual(handoff.acceptance_coverage, { 'AC-PAY-1': ['T4-flow'], 'AC-PAY-2': ['4-payment_approval-R1', '4-payment_approval-R2', '4-payment_approval-R3'] });
   assert.equal(handoff.source.work_items_artifact, 'input/work-items.yaml');
   const second = run(args, project);
   assert.notEqual(second.status, 0);
@@ -498,7 +498,7 @@ test('author validation rejects a stale vectors file', () => {
 test('author validation requires one decision-rule obligation per table-v1 rule', () => {
   const project = temporaryFixture('dmn');
   editYaml(path.join(project, 'run', 'author-manifest.yaml'), (manifest) => {
-    manifest.tasks[0].test_obligations = manifest.tasks[0].test_obligations.filter((item) => item.obligation_id !== 'T3-membership-discount-R4');
+    manifest.tasks[0].test_obligations = manifest.tasks[0].test_obligations.filter((item) => item.obligation_id !== '3-membership-discount-R4');
   });
   const result = validateAuthor(project);
   assert.notEqual(result.status, 0);
@@ -536,4 +536,42 @@ test('READY handoff carries decision vectors for table-v1 tables', () => {
   assert.equal(handoff.schema_version, '1.1');
   assert.equal(handoff.decision_vectors[0].decision_id, 'membership-discount');
   assert.equal(handoff.decision_vectors[0].rules.length, table.rules.length);
+});
+
+test('author validation rejects an empty vectors file', () => {
+  const project = temporaryFixture('dmn');
+  fs.writeFileSync(path.join(project, 'run', 'specs', 'task-3.decision.vectors.yaml'), '');
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /vectors file is stale/);
+});
+
+test('author validation rejects hand-edited vectors with an intact table fingerprint', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'specs', 'task-3.decision.vectors.yaml'), (vectors) => {
+    vectors.rules[0].wins[0].expected.discount_percent = 0;
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /vectors file is stale/);
+});
+
+test('author validation rejects a vectors file listed beside a review-only table', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'specs', 'task-3.decision.yaml'), (table) => {
+    table.execution_format = 'review-only';
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /vectors file listed but run\/specs\/task-3\.decision\.yaml is not table-v1/);
+});
+
+test('author validation rejects a rule obligation whose obligation_id differs from the convention', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'author-manifest.yaml'), (manifest) => {
+    manifest.tasks[0].test_obligations[0].obligation_id = 'T3-membership-discount-R1';
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /rule R1 of membership-discount must use obligation_id 3-membership-discount-R1/);
 });

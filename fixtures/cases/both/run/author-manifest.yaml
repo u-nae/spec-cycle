@@ -44,21 +44,21 @@ tasks:
         source: run/specs/task-4.feature#transition-a-submitted-payment-from-its-approval-decision
         acceptance_refs:
           - AC-PAY-1
-      - obligation_id: T4-payment_approval-R1
+      - obligation_id: 4-payment_approval-R1
         task_id: "4"
         kind: decision-rule
         description: Amounts from 0 to 100 are auto-approved.
         source: run/specs/task-4.decision.yaml#R1
         acceptance_refs:
           - AC-PAY-2
-      - obligation_id: T4-payment_approval-R2
+      - obligation_id: 4-payment_approval-R2
         task_id: "4"
         kind: decision-rule
         description: Amounts above 100 up to 1000 go to manager review.
         source: run/specs/task-4.decision.yaml#R2
         acceptance_refs:
           - AC-PAY-2
-      - obligation_id: T4-payment_approval-R3
+      - obligation_id: 4-payment_approval-R3
         task_id: "4"
         kind: decision-rule
         description: Amounts above 1000 are rejected.

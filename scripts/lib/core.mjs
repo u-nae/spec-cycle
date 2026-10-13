@@ -8,7 +8,8 @@ import {
   ValidationError, parseArgs, required, optional, readYaml, writeYaml, sha256File, isBlank, asArray, isObject,
   portablePath, assertPortable,
 } from './util.mjs';
-import { evaluateTable } from './decision.mjs';
+import { isDeepStrictEqual } from 'node:util';
+import { evaluateTable, vectorsArtifact, obligationIdFor } from './decision.mjs';
 import { loadConfig, initCommand, DEFAULT_CONFIG, DEFAULT_RUN_ROOT } from './config.mjs';
 
 const ROUTES = new Set(['PASS', 'GHERKIN', 'DMN', 'BOTH']);
@@ -310,6 +311,12 @@ async function parseGherkin(file) {
   return parser.parse(fs.readFileSync(file, 'utf8'));
 }
 
+function expectedVectors(decision, vectors, file, taskId) {
+  if (evaluateTable(decision).errors.length > 0) return null;
+  const artifact = vectorsArtifact({ decision, tablePath: vectors?.table, tableFingerprint: sha256File(file), taskId });
+  return YAML.parse(YAML.stringify(artifact));
+}
+
 function validateDecision(file, expectedTaskId, context = null) {
   const errors = [];
   let decision;
@@ -371,8 +378,9 @@ function validateDecision(file, expectedTaskId, context = null) {
             vectors = readYaml(vectorsFile);
           } catch (error) {
             errors.push(`${vectorsFile}: invalid YAML: ${error.message}`);
+            vectors = undefined;
           }
-          if (vectors && vectors.table_fingerprint !== sha256File(file)) {
+          if (vectors !== undefined && !isDeepStrictEqual(vectors, expectedVectors(decision, vectors, file, context.taskId ?? expectedTaskId))) {
             errors.push(`${vectorsFile}: vectors file is stale: regenerate with decision-vectors`);
           }
         }
@@ -558,7 +566,17 @@ async function validateAuthorFile(manifestFile) {
           errors.push(`${label}: invalid Gherkin ${specPath}: ${error.message}`);
         }
       }
-      if (specPath.endsWith('.decision.yaml') && !specPath.endsWith('.vectors.yaml')) {
+      if (specPath.endsWith('.vectors.yaml')) {
+        const tablePath = specPath.replace(/\.vectors\.yaml$/, '.yaml');
+        const tableFile = resolveArtifact(projectRoot, tablePath);
+        let sibling = null;
+        try {
+          sibling = fs.existsSync(tableFile) ? readYaml(tableFile) : null;
+        } catch {
+          sibling = null;
+        }
+        if (sibling?.execution_format !== 'table-v1') errors.push(`${fullPath}: vectors file listed but ${tablePath} is not table-v1`);
+      } else if (specPath.endsWith('.decision.yaml')) {
         errors.push(...validateDecision(fullPath, taskId, { projectRoot, specFiles }));
         let decision = null;
         try {
@@ -569,8 +587,10 @@ async function validateAuthorFile(manifestFile) {
         if (decision?.execution_format === 'table-v1') {
           for (const rule of evaluateTable(decision).rules ?? []) {
             const wanted = `${specPath}#${rule.rule_id}`;
-            const found = obligations.some((obligation) => obligation?.kind === 'decision-rule' && obligation?.source === wanted);
-            if (!found) errors.push(`${label}: rule ${rule.rule_id} of ${decision.decision_id} has no decision-rule obligation`);
+            const match = obligations.find((obligation) => obligation?.kind === 'decision-rule' && obligation?.source === wanted);
+            const expectedId = obligationIdFor(taskId, decision.decision_id, rule.rule_id);
+            if (!match) errors.push(`${label}: rule ${rule.rule_id} of ${decision.decision_id} has no decision-rule obligation`);
+            else if (match.obligation_id !== expectedId) errors.push(`${label}: rule ${rule.rule_id} of ${decision.decision_id} must use obligation_id ${expectedId}`);
           }
         }
       }

@@ -2,7 +2,7 @@ schema_version: "1.0"
 run_id: fixture-both
 critic_pass: 1
 reviewed_manifest: run/author-manifest.yaml
-reviewed_fingerprint: 9722a46791315551ffbb269b6688ad37bced19d85c15f789b454ff7162d227de
+reviewed_fingerprint: 3da6116cd1c79063a0d02a872454fa2c0b090822f2e8ea0851836c39f193bf7a
 verdict: READY
 findings: []
 questions: []
