@@ -5,80 +5,12 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import YAML from 'yaml';
+import {
+  pluginRoot, cli, fixtures, run, temporaryDirectory, temporaryFixture, readYaml, writeYaml, editYaml,
+  refreshFingerprint, workItemProject, defaultItems, registerCleanup,
+} from './helpers.mjs';
 
-const pluginRoot = path.resolve(import.meta.dirname, '..');
-const cli = path.join(pluginRoot, 'scripts', 'spec-cycle.mjs');
-const fixtures = path.join(pluginRoot, 'fixtures', 'cases');
-
-function run(args, cwd = pluginRoot) {
-  return spawnSync(process.execPath, [cli, ...args], { cwd, encoding: 'utf8' });
-}
-
-const temporaryDirectories = [];
-function temporaryDirectory(name) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), `spec-cycle-${name}-`));
-  temporaryDirectories.push(directory);
-  return directory;
-}
-
-test.after(() => {
-  for (const directory of temporaryDirectories) fs.rmSync(directory, { recursive: true, force: true });
-});
-
-function temporaryFixture(name) {
-  const destination = temporaryDirectory(name);
-  fs.cpSync(path.join(fixtures, name), destination, { recursive: true });
-  return destination;
-}
-
-function readYaml(file) {
-  return YAML.parse(fs.readFileSync(file, 'utf8'));
-}
-
-function writeYaml(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, YAML.stringify(value));
-}
-
-function editYaml(file, edit) {
-  const value = readYaml(file);
-  edit(value);
-  writeYaml(file, value);
-}
-
-// Re-sign a critic report after a deliberate manifest edit so that only the rule under test fails.
-function refreshFingerprint(project, manifest = 'run/author-manifest.yaml', report = 'run/critic-pass-1.yaml') {
-  const fingerprint = run(['fingerprint', '--manifest', manifest], project);
-  assert.equal(fingerprint.status, 0, fingerprint.stderr);
-  editYaml(path.join(project, report), (value) => {
-    value.reviewed_fingerprint = fingerprint.stdout.trim();
-  });
-}
-
-function workItemProject(items, { decisions = {}, extraBaseline = {} } = {}) {
-  const project = temporaryDirectory('project');
-  fs.mkdirSync(path.join(project, 'docs', 'decisions'), { recursive: true });
-  fs.writeFileSync(path.join(project, 'docs', 'PRD.md'), '# PRD\n\n## F05\nRecord every change.\n');
-  fs.writeFileSync(path.join(project, 'docs', 'TECH_STACK.md'), '# Tech\n');
-  for (const [name, body] of Object.entries(extraBaseline)) fs.writeFileSync(path.join(project, 'docs', name), body);
-  for (const [name, body] of Object.entries(decisions)) fs.writeFileSync(path.join(project, 'docs', 'decisions', name), body);
-  writeYaml(path.join(project, 'docs', 'work-items.yaml'), { schema_version: '1.0', items });
-  const init = run([
-    'init', '--baseline', 'docs/PRD.md,docs/TECH_STACK.md', '--decision-records', 'docs/decisions', '--work-items', 'docs/work-items.yaml',
-  ], project);
-  assert.equal(init.status, 0, init.stderr);
-  return project;
-}
-
-const defaultItems = [
-  { id: 'W01', title: 'Record revisions', status: 'pending', priority: 'high', source_refs: ['docs/PRD.md#F05'], acceptance_refs: ['A04'] },
-  { id: 'W02', title: 'Already started', status: 'in-progress', source_refs: ['docs/PRD.md#F05'] },
-  { id: 'W03', title: 'Missing references', status: 'pending' },
-  { id: 'W04', title: 'Foreign reference', status: 'pending', source_refs: ['docs/OTHER.md#x'] },
-];
-
-// --- fixtures ---------------------------------------------------------------
-
+registerCleanup();
 test('all six semantic fixtures satisfy their expected route and verdict', () => {
   const result = run(['validate-fixtures', '--root', fixtures]);
   assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -521,4 +453,20 @@ test('an empty work-item list points to the work-items skill instead of a null f
     assert.match(result.stderr, /Work item list is empty: docs\/work-items.yaml/);
     assert.doesNotMatch(result.stderr, /null/);
   }
+});
+
+// --- bundled dependencies ---------------------------------------------------
+
+test('missing bundled node_modules produce a clear message and exit code 1', () => {
+  const plugin = temporaryDirectory('no-modules');
+  fs.cpSync(path.join(pluginRoot, 'scripts'), path.join(plugin, 'scripts'), { recursive: true });
+  const result = spawnSync(process.execPath, [path.join(plugin, 'scripts', 'spec-cycle.mjs'), 'fingerprint', '--file', 'x'], {
+    cwd: plugin,
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 1);
+  assert.equal(
+    result.stderr.trim(),
+    'spec-cycle: bundled node_modules are missing from this plugin install; reinstall the plugin or run npm install in the plugin directory',
+  );
 });
