@@ -37,13 +37,11 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs verify-obligations --task <id>
 | obligation_id | 증명해야 할 것 |
 | --- | --- |
 
-## 2. 테스트 실행 확인
+## 2. 테스트 결과 확인
 
-- `.spec-cycle/config.yaml` 에 `verification.test_command` 가 있으면 에이전트가 실행하고 종료 코드를
-  보고에 `test_command` 결과로 기록한다. 실패하면 상태를 바꾸지 않고 출력을 그대로 보고한다.
-- 없으면 `AskUserQuestion` 으로 프로젝트 테스트를 돌렸고 통과했는지 사람에게 묻는다. 답을
-  `<run_dir>/verification.yaml` 의 `test_command` 필드 바로 뒤에 `human_confirmed_tests: true` 또는
-  `false` 로 기록한다(YAML 파일을 직접 편집한다).
+- `.spec-cycle/config.yaml` 에 `verification.test_command` 가 있으면 에이전트가 실행하고 종료 코드를 적어 둔다.
+  실패하면 출력을 그대로 보고한다.
+- 없으면 `AskUserQuestion` 으로 프로젝트 테스트를 돌렸고 통과했는지 사람에게 묻고 답을 적어 둔다.
 
 ## 3. 완료 처리
 
@@ -53,8 +51,16 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs verify-obligations --task <id>
 node PLUGIN_ROOT/scripts/spec-cycle.mjs verify-obligations --task <id> --mark-done
 ```
 
-스크립트가 미커버가 없을 때만 `done` 을 쓴다. 조건이 하나라도 충족되지 않으면 이 단계를 건너뛰고 상태를
-그대로 둔다.
+스크립트가 미커버가 없을 때만 `done` 을 쓴다. 미커버가 있거나, 테스트가 실패했거나, 사람이 테스트를 돌리지
+않았다고(`human_confirmed_tests: false`) 답했다면 `--mark-done` 을 **실행하지 않고** 상태를 그대로 둔다.
+
+## 4. 기록
+
+이 커맨드의 **마지막** `verify-obligations` 실행(`--mark-done` 실행, 3단계를 건너뛰었다면 1단계 실행)
+**이후에** `<run_dir>/verification.yaml` 의 `test_command` 필드 바로 뒤에 `human_confirmed_tests: true` 또는
+`false` 를 직접 추가한다. 에이전트가 `test_command` 를 실행했다면 `test_command` 도
+`{ command: "...", exit_code: N }` 로 채운다. 이것이 유일한 수동 편집이며 반드시 마지막에 한다.
+스크립트가 실행할 때마다 보고서를 새로 써서 먼저 추가한 키와 `test_command` 값을 지우기 때문이다.
 
 ## 최종 보고
 
@@ -62,6 +68,6 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs verify-obligations --task <id> --mark-do
 
 - 커버리지 `n/m` 과 미커버 obligation 목록
 - 테스트 결과(`test_command` 종료 코드 또는 `human_confirmed_tests`)
-- 작업 항목 상태(`done` 으로 바뀌었는지, 아니면 이유)
+- `done` 을 썼는지 여부와, 쓰지 않았다면 그 이유
 - `verification.yaml` 경로
 - 다음 행동 한 줄: 남은 항목은 `node PLUGIN_ROOT/scripts/spec-cycle.mjs status` 로 확인
