@@ -7,8 +7,10 @@ const MISSING_DEPENDENCY_MESSAGE =
   'spec-cycle: bundled node_modules are missing from this plugin install; reinstall the plugin or run npm install in the plugin directory';
 
 let core;
+let detectModule;
 try {
   core = await import('./lib/core.mjs');
+  detectModule = await import('./lib/detect.mjs');
 } catch (error) {
   if (error.code === 'ERR_MODULE_NOT_FOUND' && /'(yaml|@cucumber[^']*)'/.test(error.message)) {
     console.error(MISSING_DEPENDENCY_MESSAGE);
@@ -28,6 +30,7 @@ function usage() {
   spec-cycle.mjs init (--baseline <doc>[,<doc>...] | --adopt <path>) [--decision-records <dir>] [--work-items <file>] [--run-root <dir>]
                       [--intake <native|taskmaster>] [--execution <superpowers|inline|command>] [--command <slash>]
                       [--test-globs <a,b>] [--project <dir>]
+  spec-cycle.mjs detect [--project <dir>]
   spec-cycle.mjs resolve-inputs [--project <dir>] [--config <file>] [--task <id>]
   spec-cycle.mjs normalize --out <file> [--config <file>] [--task <id>]
   spec-cycle.mjs fingerprint (--file <file>|--manifest <author-manifest>)
@@ -44,6 +47,9 @@ async function main() {
   switch (command) {
     case 'init':
       initCommand(args);
+      break;
+    case 'detect':
+      detectModule.detectCommand(args);
       break;
     case 'resolve-inputs':
       resolveInputsCommand(args);
