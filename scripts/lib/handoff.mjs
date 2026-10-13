@@ -6,35 +6,12 @@ import { ValidationError, asArray, optional, portablePath, readYaml, required } 
 import { loadConfig } from './config.mjs';
 import { decisionRecordFiles, flattenWorkItems, readWorkItems, sourceSnapshot } from './core.mjs';
 import { definitionalFields } from './work-items.mjs';
-
-const HANDOFF_FILE = 'tdd-handoff.yaml';
-const NORMALIZED_FILE = 'normalized-tasks.yaml';
+import { HANDOFF_FILE, NORMALIZED_FILE, latestRunFor } from './runs.mjs';
 const FIELD_ORDER = ['title', 'description', 'details', 'test_strategy', 'dependencies', 'source_refs', 'acceptance_refs'];
-
-// The newest handoff (by file mtime, then directory name) among runs that cover the task.
-function findLatestHandoff(runRootDir, taskId) {
-  if (!fs.existsSync(runRootDir) || !fs.statSync(runRootDir).isDirectory()) return null;
-  const candidates = [];
-  for (const entry of fs.readdirSync(runRootDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const file = path.join(runRootDir, entry.name, HANDOFF_FILE);
-    if (!fs.existsSync(file)) continue;
-    let handoff;
-    try {
-      handoff = readYaml(file);
-    } catch {
-      continue;
-    }
-    if (!asArray(handoff?.source_tasks).some((task) => String(task?.task_id) === taskId)) continue;
-    candidates.push({ name: entry.name, file, handoff, mtimeMs: fs.statSync(file).mtimeMs });
-  }
-  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs || (a.name < b.name ? 1 : -1));
-  return candidates[0] ?? null;
-}
 
 function resolveHandoff({ projectRoot, configArg = null, taskId }) {
   const config = loadConfig(projectRoot, configArg);
-  const found = findLatestHandoff(path.join(projectRoot, config.run_root), taskId);
+  const found = latestRunFor({ projectRoot, runRoot: config.run_root, taskId, requireHandoff: true });
   const { tasks } = flattenWorkItems(readWorkItems(path.join(projectRoot, config.work_items)), config.work_items);
   const current = tasks.find((task) => task.task_id === taskId) ?? null;
   const resolution = {
@@ -62,6 +39,10 @@ function resolveHandoff({ projectRoot, configArg = null, taskId }) {
     if (!now || now.fingerprint !== doc.fingerprint) {
       errors.push(`baseline ${doc.path} changed since the handoff; rerun the gate`);
     }
+  }
+  const handedOff = new Set(asArray(source.baseline).map((doc) => doc?.path));
+  for (const doc of snapshot.baseline) {
+    if (!handedOff.has(doc.path)) errors.push(`baseline ${doc.path} was added since the handoff; rerun the gate`);
   }
 
   if (!current) {

@@ -135,3 +135,15 @@ test('resolve-handoff is unusable when the work item no longer exists', () => {
   assert.equal(value.work_item_status, null);
   assert.ok(value.errors.includes('work item W01 not found in docs/work-items.yaml'));
 });
+
+test('resolve-handoff is unusable when a baseline document was added since the handoff', () => {
+  const { project } = handoffProject();
+  fs.writeFileSync(path.join(project, 'docs', 'ARCH.md'), '# Architecture\n');
+  editYaml(path.join(project, '.spec-cycle', 'config.yaml'), (config) => {
+    config.baseline.push('docs/ARCH.md');
+  });
+  const { result, value } = resolution(project);
+  assert.equal(result.status, 1);
+  assert.equal(value.usable, false);
+  assert.deepEqual(value.errors, ['baseline docs/ARCH.md was added since the handoff; rerun the gate']);
+});

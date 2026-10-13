@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import YAML from 'yaml';
-import { editYaml, handoffProject, readYaml, registerCleanup, run, writeYaml } from './helpers.mjs';
+import { editYaml, handoffProject, readYaml, registerCleanup, run, writeRun, writeYaml } from './helpers.mjs';
 
 registerCleanup();
 
@@ -142,4 +142,34 @@ test('status lists each work item with its latest run verdict and coverage', () 
   assert.deepEqual(rows[1], {
     id: 'W02', title: 'Already started', status: 'in-progress', latest_run: null, verdict: null, handoff: false, coverage: null,
   });
+});
+
+test('status reports the newest run, not the run with the most critic passes', () => {
+  const { project, runDir, handoffFile } = verifyProject(['W01-x']);
+  // An older re-gate that stopped at the pass limit; its name sorts after the current run on purpose.
+  const older = writeRun(project, 't-w01-zzzz');
+  fs.rmSync(older.handoffFile);
+  writeYaml(path.join(older.runDir, 'critic-pass-1.yaml'), { verdict: 'REVISE' });
+  writeYaml(path.join(older.runDir, 'critic-pass-2.yaml'), { verdict: 'BLOCKED_AT_LIMIT' });
+  for (const name of fs.readdirSync(older.runDir)) fs.utimesSync(path.join(older.runDir, name), 1_600_000_000, 1_600_000_000);
+
+  writeYaml(path.join(runDir, 'critic-pass-1.yaml'), { verdict: 'READY' });
+  writeYaml(path.join(runDir, 'verification.yaml'), {
+    obligations: [{ obligation_id: 'W01-x', covered: true, locations: ['tests/A.test.mjs:1'] }],
+  });
+  fs.utimesSync(handoffFile, 1_700_000_000, 1_700_000_000);
+
+  const result = run(['status'], project);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(YAML.parse(result.stdout)[0], {
+    id: 'W01', title: 'Record revisions', status: 'pending', latest_run: 't-w01-aaaa', verdict: 'READY', handoff: true, coverage: '1/1',
+  });
+  assert.equal(run(['resolve-handoff', '--task', 'W01'], project).stdout.includes('run_id: t-w01-aaaa'), true);
+
+  // Once the older run becomes the newest, status follows it.
+  for (const name of fs.readdirSync(older.runDir)) fs.utimesSync(path.join(older.runDir, name), 1_800_000_000, 1_800_000_000);
+  const later = YAML.parse(run(['status'], project).stdout)[0];
+  assert.equal(later.latest_run, 't-w01-zzzz');
+  assert.equal(later.verdict, 'BLOCKED_AT_LIMIT');
+  assert.equal(later.handoff, false);
 });

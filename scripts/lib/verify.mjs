@@ -8,10 +8,10 @@ import { flattenWorkItems, readWorkItems } from './core.mjs';
 import { matchGlobs } from './glob.mjs';
 import { escapeRegExp, idPattern } from './ids.mjs';
 import { resolveHandoff } from './handoff.mjs';
+import { latestRunFor } from './runs.mjs';
 import { setStatus } from './work-items.mjs';
 
 const VERIFICATION_FILE = 'verification.yaml';
-const NORMALIZED_FILE = 'normalized-tasks.yaml';
 const NO_FILES_ERROR = 'verification.test_globs matched no files; set it in .spec-cycle/config.yaml';
 
 function matcherFor(idPatternText, id) {
@@ -69,57 +69,6 @@ function verifyObligations({ projectRoot, configArg = null, taskId, outFile = nu
   return report;
 }
 
-function newestMtime(file) {
-  return fs.existsSync(file) ? fs.statSync(file).mtimeMs : 0;
-}
-
-function criticPasses(dir) {
-  const passes = [];
-  for (const name of fs.readdirSync(dir)) {
-    const match = /^critic-pass-(\d+)\.yaml$/.exec(name);
-    if (match) passes.push({ n: Number(match[1]), file: path.join(dir, name) });
-  }
-  return passes.sort((a, b) => b.n - a.n);
-}
-
-function runsFor(runRootDir) {
-  const runs = [];
-  if (!fs.existsSync(runRootDir) || !fs.statSync(runRootDir).isDirectory()) return runs;
-  for (const entry of fs.readdirSync(runRootDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const dir = path.join(runRootDir, entry.name);
-    const normalizedFile = path.join(dir, NORMALIZED_FILE);
-    if (!fs.existsSync(normalizedFile)) continue;
-    let normalized;
-    try {
-      normalized = readYaml(normalizedFile);
-    } catch {
-      continue;
-    }
-    const passes = criticPasses(dir);
-    runs.push({
-      name: entry.name,
-      dir,
-      taskIds: new Set(asArray(normalized?.tasks).map((task) => String(task?.task_id))),
-      topPass: passes[0] ?? null,
-      passMtime: passes[0] ? newestMtime(passes[0].file) : 0,
-      normalizedMtime: newestMtime(normalizedFile),
-    });
-  }
-  return runs;
-}
-
-function latestRun(runs) {
-  // Greatest critic pass wins, ties by that pass file's mtime; runs without a pass rank below, by normalized mtime.
-  const rank = (run) => [run.topPass ? run.topPass.n : -1, run.passMtime, run.normalizedMtime];
-  return [...runs].sort((a, b) => {
-    const left = rank(a);
-    const right = rank(b);
-    for (let i = 0; i < left.length; i += 1) if (left[i] !== right[i]) return right[i] - left[i];
-    return a.name < b.name ? 1 : -1;
-  })[0] ?? null;
-}
-
 function coverageOf(dir) {
   const file = path.join(dir, VERIFICATION_FILE);
   if (!fs.existsSync(file)) return null;
@@ -130,16 +79,15 @@ function coverageOf(dir) {
 function statusTable({ projectRoot, configArg = null }) {
   const config = loadConfig(projectRoot, configArg);
   const { tasks } = flattenWorkItems(readWorkItems(path.join(projectRoot, config.work_items)), config.work_items);
-  const runs = runsFor(path.join(projectRoot, config.run_root));
   return tasks.map((task) => {
-    const run = latestRun(runs.filter((candidate) => candidate.taskIds.has(task.task_id)));
+    const run = latestRunFor({ projectRoot, runRoot: config.run_root, taskId: task.task_id });
     return {
       id: task.task_id,
       title: task.title,
       status: task.status,
       latest_run: run ? run.name : null,
       verdict: run?.topPass ? (readYaml(run.topPass.file)?.verdict ?? null) : null,
-      handoff: run ? fs.existsSync(path.join(run.dir, 'tdd-handoff.yaml')) : false,
+      handoff: Boolean(run?.handoff),
       coverage: run ? coverageOf(run.dir) : null,
     };
   });
