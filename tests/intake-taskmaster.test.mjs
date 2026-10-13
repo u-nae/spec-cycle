@@ -152,7 +152,7 @@ test('import coerces numeric ids and string dependencies consistently', () => {
   assert.deepEqual(out[1].dependencies, ['T3']);
   assert.equal(out[1].subtasks[0].id, '2');
   assert.equal(out[1].subtasks[0].external_ref, 'taskmaster:master:4.2');
-  assert.deepEqual(out[1].subtasks[0].dependencies, ['T1', 'T4.1']);
+  assert.deepEqual(out[1].subtasks[0].dependencies, ['1', 'T4.1']);
 });
 
 test('subtask dependencies stay parent-relative unless dotted, and the normalizer resolves them', () => {
