@@ -65,6 +65,9 @@ Common contract:
 | `inline` | Summarizes the brief and handoff. Only after the human says go, writes failing tests obligation by obligation in the same session (using `superpowers:test-driven-development` when available), with the `obligation_id` in test names or tags. | Say when to start; then `/spec-cycle:verify <id>`. |
 | `command` | Tells the human to invoke `execution.command` with the work item's external id, after reading the brief. The plugin never runs that command. | Run the configured command, then `/spec-cycle:verify <id>`. |
 
+For `superpowers`, the plan `check-plan` reads is the file `superpowers:writing-plans` reports; if it reports none,
+`implement` uses the newest `.md` under `execution.plan_dir` (default `docs/superpowers/plans`).
+
 ### Fallback rule
 
 If `execution.adapter` is `superpowers` but `detect` reports `superpowers: false`, `implement` falls back to

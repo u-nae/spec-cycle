@@ -7,8 +7,9 @@
 | 검사 | 결과 |
 | --- | --- |
 | `claude plugin validate . --strict` | 통과 (`Validation passed`) |
-| `claude --plugin-dir . plugin details spec-cycle` | 0.2.0 로드. 스킬 7개(implement, init, run, specification-author, specification-critic, verify, work-items), 에이전트 1개(specification-critic-agent), 훅·MCP·LSP 0개. 상시 토큰 비용 약 847 tok |
-| `npm test` | 131개 중 131 통과, 0 실패 |
+| `claude --plugin-dir . plugin details spec-cycle` | 0.2.0 로드. `Skills (7)` 로 7개(implement, init, run, specification-author, specification-critic, verify, work-items)를 나열한다 — 커맨드 4개(implement, init, run, verify)와 스킬 3개를 합친 수이며 커맨드 절은 따로 없다. 에이전트 1개(specification-critic-agent), 훅·MCP·LSP 0개. 상시 토큰 비용 약 847 tok. 구성 요소별 `disable-model-invocation` 표시는 없다 |
+| `claude --plugin-dir . -p "…Skill 도구로 부를 수 있는 spec-cycle: 항목을 나열…"` | 커맨드 4개에 `disable-model-invocation: true` 를 단 뒤 `NONE`. 같은 질문을 플래그 없는 커맨드로 돌린 대조 실행은 `spec-cycle:implement`, `init`, `run`, `verify` 를 나열했다. 모델이 부를 수 있는 진입점은 없다 |
+| `npm test` | 138개 중 138 통과, 0 실패 |
 | `npm run validate:fixtures` | 7/7 fixture PASS (`taskmaster`만 `taskmaster_import: PASS`, 나머지는 `null`) |
 | `npm run metrics` | 7개 fixture 전체 완료 (runs 7, tasks 7, traceability_completeness 1, validation_failure_rate 0) |
 | `npm run validate` | 위 plugin validate, plugin details, `npm test`를 연속 실행해 모두 통과 |

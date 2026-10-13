@@ -1,21 +1,42 @@
 # Versioned artifact contracts
 
-Read this file before creating or reviewing artifacts. Use schema version `1.0` (TDD handoff: `1.1`) and repository-relative paths.
+Read this file before creating or reviewing artifacts. Contracts version 1.1: project config `1.1` (a `1.0` config is still read),
+TDD handoff `1.1`, every other artifact `1.0`. Use repository-relative paths.
 `scripts/spec-cycle.mjs` enforces every rule marked "validator" below; the rest are author and critic duties.
 
 ## Project config — `.spec-cycle/config.yaml`
 
 ```yaml
-schema_version: "1.0"
+schema_version: "1.1"
 baseline:                     # documents that specifications must be grounded in
   - docs/PRD.md
   - docs/TECH_STACK.md
 decision_records: docs/decisions   # directory of *.md decision records, or null
 work_items: docs/work-items.yaml
 run_root: .spec-cycle/runs
+
+intake:
+  adapter: native             # native | taskmaster (default native)
+  taskmaster:                 # read only when adapter is taskmaster
+    tasks: .taskmaster/tasks/tasks.json   # default
+    tag: null                 # null: .taskmaster/state.json currentTag, else master
+
+execution:
+  adapter: inline             # superpowers | inline | command (default inline)
+  command: null               # required when adapter is command, e.g. "/task-cycle"
+  plan_dir: docs/superpowers/plans   # default; where implement looks for the superpowers plan
+
+verification:
+  test_globs: []              # files searched for obligation ids (default []; verify fails on no match)
+  id_pattern: null            # null: literal id match; otherwise a regex string containing {id}
+  test_command: null          # optional; verify runs it and records the exit code
 ```
 
 Create it once with `spec-cycle.mjs init --baseline docs/PRD.md,docs/TECH_STACK.md --decision-records docs/decisions`.
+Every section and key below `run_root` is optional and takes the default shown (validator).
+Compatibility: a `schema_version: "1.0"` file has no `intake`/`execution`/`verification` sections and is read as
+`intake.adapter: native`, `execution.adapter: inline`, `verification.test_globs: []`, so `verify` on a 1.0 config
+fails with the empty `test_globs` error.
 Every baseline document and the decision-record set are fingerprinted. Changing any of them, or the
 work-item list, invalidates every run authored against the previous content (validator).
 
@@ -28,11 +49,12 @@ enters one TDD cycle.
 schema_version: "1.0"
 items:
   - id: W05                      # [A-Za-z0-9][A-Za-z0-9_-]*; dots are reserved for subtasks
+    external_ref: taskmaster:master:5   # optional, <adapter>:<tag>:<id>; written by import-taskmaster
     title: Record a revision for every confirmed configuration change
     description: One sentence of intent.
     details: Scope and boundaries the baseline already fixes.
     test_strategy: How the behaviour will be shown to work.
-    status: pending              # pending | in-progress | done | deferred
+    status: pending              # pending | in-progress | done | deferred; omitted means pending
     priority: high               # high | medium | low
     dependencies: [W04]
     source_refs:                 # baseline or decision-record locators that justify the item
@@ -229,7 +251,7 @@ fingerprint.
 ```yaml
 schema_version: "1.0"
 decision_id: bookmark_failure_cause
-table: <repository-relative table path>
+table: <the table path exactly as listed in spec_files>   # validate-author rejects an absolute or different path
 table_fingerprint: <sha256 of the table file>   # validate-author rejects a mismatch as stale
 cells_total: 9
 rules:
@@ -280,6 +302,62 @@ decision_log: .spec-cycle/runs/<run-id>/decision-log.yaml
 critic_report: .spec-cycle/runs/<run-id>/critic-pass-1.yaml
 non_blocking_notes: []
 ```
+
+## Spec brief — `<run_dir>/spec-brief.md`
+
+`render-brief --handoff <file> --out <file>` renders the brief deterministically from the handoff: the same
+handoff gives a byte-identical brief, and an existing brief with different content is never overwritten
+(validator). Headings, in order:
+
+1. `## 1. 작업 항목` — id, title, route, acceptance refs, baseline paths with fingerprints, `run_id`
+2. `## 2. 승인된 명세` — full `.feature` text; decision tables as a Markdown table plus the computed cell map
+3. `## 3. Test obligations` — obligation_id, kind, description, acceptance_refs, source
+4. `## 4. 결정 벡터` — per rule: inputs and expected outputs (empty for a 1.0 handoff)
+5. `## 5. 결정` — the decision log and promoted decision-record paths
+6. `## 6. Non-blocking notes`
+7. `## 7. 검증 계약` — the sentence: "모든 테스트의 이름 또는 태그에 그 테스트가 증명하는 obligation_id를
+   포함한다. /spec-cycle:verify 가 이 문자열을 찾는다."
+
+## Plan check — `check-plan` stdout
+
+`check-plan --plan <file> --handoff <file>` reports which handoff `obligation_id`s are absent from the plan text.
+An id counts only as a whole token, so `W06-x-10` does not cover `W06-x` (validator).
+
+```yaml
+total: 7                  # obligations in the handoff
+missing: [W06-bookmark_failure_cause-R4]
+```
+
+Exit code 1 when `missing` is non-empty, and when the handoff has no test obligations (validator).
+
+## Verification report — `<run_dir>/verification.yaml`
+
+Written by `verify-obligations --task <id> [--mark-done]` on every run, replacing the previous report.
+
+```yaml
+schema_version: "1.0"
+run_id: t-w06-c0dec005
+task_id: W06
+checked_at: <ISO-8601>
+test_globs: [Tests/**/*.swift]
+obligations:
+  - obligation_id: W06-create-bookmark
+    covered: true
+    locations: [Tests/Platform/BookmarkTests.swift:42]   # sorted file:line matches
+  - obligation_id: W06-bookmark_failure_cause-R4
+    covered: false
+    locations: []
+uncovered_count: 1
+test_command: null        # the script writes null; the verify command fills { command: "...", exit_code: N }
+status_written: null      # done only when --mark-done ran with uncovered_count 0
+human_confirmed_tests: true   # optional; added by the verify command after the last script run
+```
+
+Coverage is an existence check: an obligation is covered when its id (or `verification.id_pattern` with the
+id substituted) appears in a file matched by `verification.test_globs`. `--mark-done` writes `done` to the
+work-item list only when `uncovered_count` is 0 (validator). `human_confirmed_tests` and a non-null
+`test_command` are the only keys the verify command edits by hand, and only after its last
+`verify-obligations` run, because every run rewrites the file.
 
 ## Invariants
 

@@ -29,7 +29,8 @@
 | 구현 인계 | `implement` 가 brief를 만들어 `superpowers` / `inline` / `command` 중 설정된 어댑터에 넘김 |
 | 상태 | 작업 항목 상태는 `implement`(→ `in-progress`)와 `verify`(→ `done`)에서만, 스크립트로만 바뀜 |
 
-게이트의 성질은 다음으로 지킵니다. 사람만 호출(`disable-model-invocation`), 작성자와 비평자 컨텍스트 분리,
+게이트의 성질은 다음으로 지킵니다. 사람만 호출(커맨드 4개와 스킬 3개 모두 `disable-model-invocation: true` —
+모델이나 자동 실행 에이전트가 `run`·`implement`·`verify` 를 스스로 부르지 못함), 작성자와 비평자 컨텍스트 분리,
 스크립트가 판정 규칙·revision 한도·READY 전용 handoff를 강제, `done` 은 커버리지가 완전할 때만 기록.
 
 ## 구성 요소

@@ -1,6 +1,7 @@
 ---
 description: "명세 게이트 1회 실행 — 입력 해석 → 명세 작성 → 독립 비평 → 판정별 처리 → READY 시 TDD handoff 생성"
 argument-hint: "[work-item-id] [--config path]"
+disable-model-invocation: true
 ---
 
 # 명세 게이트 실행
@@ -134,12 +135,11 @@ manifest·critic 리포트를 보존한다. `revision_count` 를 정확히 1 증
 
 ## 6. 다음 행동 안내
 
-`.spec-cycle/config.yaml` 의 `execution.adapter` 를 읽어 다음 커맨드를 한 줄로 안내한다. 대신 실행하지 않는다.
+다음 커맨드는 실행 어댑터와 관계없이 `/spec-cycle:implement <id>` 다. 한 줄로 안내하고 대신 실행하지 않는다.
+brief(`spec-brief.md`)와 `in-progress` 전이는 implement 가 만든다.
 
-- `superpowers` 또는 `inline` — `/spec-cycle:implement <id>`
-- `command` — 설정된 `execution.command` 를 작업 항목의 외부 id 로 호출하라고 안내한다. 외부 id 는
-  `external_ref`(예: `taskmaster:master:6` → `6`)에서 얻고, 없으면 작업 항목 id 를 쓴다. 안내에
-  "brief를 먼저 읽을 것"을 붙인다. brief(`spec-brief.md`)는 `/spec-cycle:implement <id>` 가 만든다.
+`.spec-cycle/config.yaml` 의 `execution.adapter` 가 `command` 면 한 줄을 덧붙인다: implement 의 command 절이
+호출할 외부 커맨드(`execution.command`)와 작업 항목의 외부 id 를 알려 준다.
 
 ## 최종 보고
 

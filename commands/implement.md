@@ -1,6 +1,7 @@
 ---
 description: "READY handoff → 명세 브리프 → 실행 어댑터(superpowers / inline / command) 인계"
 argument-hint: "<work-item-id>"
+disable-model-invocation: true
 ---
 
 # 구현 인계
@@ -32,6 +33,8 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs resolve-handoff --task <id>
 
 - `usable: false` (종료 코드 1) — `errors` 를 **그대로 전달하고 멈춘다.** 우회하지 않는다.
 - `warnings` — 최종 보고에 싣는다. `work_item_status` 가 `done` 이면 `AskUserQuestion` 으로 계속할지 확인한다.
+  사람이 계속하기로 하면 3단계(상태 전이)를 건너뛰고 상태는 `done` 으로 둔다(`done -> in-progress` 는
+  허용되지 않으며, 이후 verify 의 `--mark-done` 은 상태를 바꾸지 않는다).
 
 ## 2. 브리프 생성
 
@@ -63,7 +66,9 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs set-status --task <id> --status in-progr
    - "brainstorming은 명세 게이트가 대신했다. READY handoff가 승인된 spec이다. brainstorming을 호출하지 않는다."
    - "plan의 모든 task는 `**Obligations:**` 줄에 그 task가 증명하는 `obligation_id`를 나열한다."
    - "테스트 이름/태그에 `obligation_id`를 넣는다."
-3. plan 이 저장되면 검사한다.
+3. plan 이 저장되면 검사한다. `<plan>` 은 `superpowers:writing-plans` 가 저장했다고 보고한 파일 경로다.
+   경로를 보고하지 않았으면 `.spec-cycle/config.yaml` 의 `execution.plan_dir` 아래에서 가장 최근에 수정된
+   `.md` 파일을 쓴다.
 
    ```
    node PLUGIN_ROOT/scripts/spec-cycle.mjs check-plan --plan <plan> --handoff <handoff>

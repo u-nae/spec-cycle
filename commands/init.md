@@ -1,6 +1,7 @@
 ---
 description: "프로젝트 초기화 — 환경 감지 → .spec-cycle/config.yaml 생성 (기존 .spec-gate 설정 채택 지원)"
 argument-hint: "[--adopt path] [--baseline a,b]"
+disable-model-invocation: true
 ---
 
 # 프로젝트 초기화

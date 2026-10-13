@@ -1,6 +1,7 @@
 ---
 description: "obligation 커버리지 검증 — 테스트 파일에서 obligation_id 확인, 통과 시에만 작업 항목 done"
 argument-hint: "<work-item-id>"
+disable-model-invocation: true
 ---
 
 # obligation 커버리지 검증
