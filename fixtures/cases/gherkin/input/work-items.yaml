@@ -1,0 +1,14 @@
+schema_version: "1.0"
+items:
+  - id: "2"
+    title: Enforce session entry window
+    description: Allow enrolled learners to enter only during the configured time window.
+    details: Entry opens 10 minutes before start and closes 5 minutes after start. Denials expose a reason.
+    test_strategy: Cover both exact boundaries, outside-window denial, and non-enrolled denial.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#session-entry
+    acceptance_refs:
+      - AC-ENTRY

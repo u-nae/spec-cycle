@@ -1,0 +1,62 @@
+schema_version: "1.0"
+run_id: fixture-dmn
+generated_at: 2026-08-14T00:00:00.000Z
+revision_count: 0
+max_revisions: 2
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: ad38c545fa15f1972ff1f47c7d53030f1c6c39dae7146ec7668104abeb852569
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 7be875ef8faa739b5f459db76ce08585585bcd23d91bd57a3d96ba6b5e7a0856
+  normalized_artifact: run/normalized-tasks.yaml
+tasks:
+  - task_id: "3"
+    title: Determine membership discount
+    source_locator: work-items[id=3]
+    observed_attributes:
+      priority: medium
+      dependencies: []
+    acceptance_refs: []
+    route: DMN
+    route_confidence: high
+    route_reasons:
+      - Membership tier and subtotal ranges combine into one discount decision whose gaps and overlaps must be visible.
+    risk_signals:
+      - policy-combination
+      - monetary-boundary
+    assumptions: []
+    spec_files:
+      - run/specs/task-3.decision.yaml
+      - run/specs/task-3.decision.vectors.yaml
+    test_obligations:
+      - obligation_id: 3-membership-discount-R1
+        task_id: "3"
+        kind: decision-rule
+        description: GOLD with subtotal at or above 100000 gets 20 percent.
+        source: run/specs/task-3.decision.yaml#R1
+      - obligation_id: 3-membership-discount-R2
+        task_id: "3"
+        kind: decision-rule
+        description: GOLD with subtotal below 100000 gets 10 percent.
+        source: run/specs/task-3.decision.yaml#R2
+      - obligation_id: 3-membership-discount-R3
+        task_id: "3"
+        kind: decision-rule
+        description: SILVER with subtotal at or above 100000 gets 10 percent.
+        source: run/specs/task-3.decision.yaml#R3
+      - obligation_id: 3-membership-discount-R4
+        task_id: "3"
+        kind: decision-rule
+        description: SILVER with subtotal below 100000 gets 0 percent.
+        source: run/specs/task-3.decision.yaml#R4
+      - obligation_id: 3-membership-discount-R5
+        task_id: "3"
+        kind: decision-rule
+        description: NONE gets 0 percent at any subtotal.
+        source: run/specs/task-3.decision.yaml#R5
+    questions: []
+    author_status: READY_FOR_CRITIC

@@ -1,0 +1,11 @@
+schema_version: "1.0"
+run_id: dry-run-reentry
+decisions:
+  - question_id: Q-5-reentry
+    task_id: "5"
+    question: After a learner leaves a live session, should re-entry be prohibited or allowed for ten minutes?
+    recommended_default: B
+    answer: Allow re-entry for ten minutes.
+    followed_recommendation: true
+    answer_source: AskUserQuestion
+    answered_at: 2026-08-14T01:05:00.000Z

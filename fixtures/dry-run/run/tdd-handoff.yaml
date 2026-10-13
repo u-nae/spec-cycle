@@ -1,0 +1,42 @@
+schema_version: "1.0"
+run_id: dry-run-reentry
+verdict: READY
+source:
+  baseline:
+    - path: fixtures/cases/needs-human/input/PRD.md
+      fingerprint: f476e0cba8688769d7d15f57d2cf011a469bee3e6d2634000acae71f631ddeba
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: fixtures/cases/needs-human/input/work-items.yaml
+  work_items_fingerprint: 42c341fd85a8b844f1fed379a26130dcbc9dd2411f2976b0085214c084087168
+  normalized_artifact: fixtures/dry-run/run/normalized-tasks.yaml
+source_tasks:
+  - task_id: "5"
+    title: Control session re-entry
+    route: GHERKIN
+    acceptance_refs: []
+accepted_specifications:
+  - task_id: "5"
+    route: GHERKIN
+    path: fixtures/dry-run/run/specs/revision-1/task-5.feature
+test_obligations:
+  - obligation_id: T5-leave
+    task_id: "5"
+    kind: scenario
+    description: Record the exact time when an enrolled learner leaves.
+    source: fixtures/dry-run/run/specs/revision-1/task-5.feature#record-that-an-enrolled-learner-left
+  - obligation_id: T5-reentry-boundary
+    task_id: "5"
+    kind: scenario
+    description: Allow re-entry exactly ten minutes after leaving.
+    source: fixtures/dry-run/run/specs/revision-1/task-5.feature#allow-re-entry-at-the-inclusive-boundary
+  - obligation_id: T5-reentry-closed
+    task_id: "5"
+    kind: scenario
+    description: Deny re-entry immediately after the inclusive boundary.
+    source: fixtures/dry-run/run/specs/revision-1/task-5.feature#deny-re-entry-after-the-boundary
+acceptance_coverage: {}
+decision_log: fixtures/dry-run/run/decision-log.yaml
+critic_report: fixtures/dry-run/run/critic-pass-2.yaml
+non_blocking_notes: []

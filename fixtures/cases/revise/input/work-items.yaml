@@ -1,0 +1,13 @@
+schema_version: "1.0"
+items:
+  - id: "6"
+    title: Lock an account after failed sign-ins
+    description: Lock an account after five consecutive failures and automatically unlock it after 30 minutes.
+    details: A successful sign-in before the threshold resets the consecutive-failure counter.
+    test_strategy: Cover the fifth failure, automatic unlock boundary, and counter reset.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#account-lock
+    acceptance_refs: []

@@ -1,0 +1,10 @@
+schema_version: "1.1"
+baseline:
+  - input/PRD.md
+work_items: input/work-items.yaml
+run_root: run
+intake:
+  adapter: taskmaster
+  taskmaster:
+    tasks: input/tasks.json
+    tag: master

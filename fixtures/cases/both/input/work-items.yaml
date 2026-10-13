@@ -1,0 +1,15 @@
+schema_version: "1.0"
+items:
+  - id: "4"
+    title: Process payment through approval policy
+    description: Request an approval decision and transition payment state from its result.
+    details: Amounts through 100 are auto-approved, through 1000 require manager approval, and larger amounts are rejected.
+    test_strategy: Cover approval boundaries and observable payment state for each decision result.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#payment-approval
+    acceptance_refs:
+      - AC-PAY-1
+      - AC-PAY-2

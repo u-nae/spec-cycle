@@ -1,0 +1,26 @@
+schema_version: "1.0"
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 0abbcd685513f71c91e0fadd1deb9c115824638d2a4bc4a8d6f86c976286fe5d
+  decision_records:
+    path: input/decisions
+    fingerprint: ec72954c58d6313342cf5fa2ca37500de096c846f7e091a77d22f5e323962eb0
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 700a5dd377a206afdf56dd5ce7e74eeb1bb05370b1ad89889b1ff3b748eb4e3f
+normalization_warnings: []
+tasks:
+  - task_id: "2"
+    parent_task_id: null
+    title: Enforce session entry window
+    description: Allow enrolled learners to enter only during the configured time window.
+    details: Entry opens 10 minutes before start and closes 5 minutes after start. Denials expose a reason.
+    test_strategy: Cover both exact boundaries, outside-window denial, and non-enrolled denial.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#session-entry
+    acceptance_refs:
+      - AC-ENTRY
+    source_locator: work-items[id=2]

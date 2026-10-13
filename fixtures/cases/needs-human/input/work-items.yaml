@@ -1,0 +1,13 @@
+schema_version: "1.0"
+items:
+  - id: "5"
+    title: Control session re-entry
+    description: Apply the session re-entry policy after a learner leaves.
+    details: The source contains conflicting re-entry statements and requires a business decision.
+    test_strategy: Resolve the conflict, then test the selected policy and its boundary.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#session-re-entry
+    acceptance_refs: []

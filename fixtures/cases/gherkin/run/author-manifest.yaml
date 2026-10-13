@@ -1,0 +1,54 @@
+schema_version: "1.0"
+run_id: fixture-gherkin
+generated_at: 2026-08-14T00:00:00.000Z
+revision_count: 0
+max_revisions: 2
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 0abbcd685513f71c91e0fadd1deb9c115824638d2a4bc4a8d6f86c976286fe5d
+  decision_records:
+    path: input/decisions
+    fingerprint: ec72954c58d6313342cf5fa2ca37500de096c846f7e091a77d22f5e323962eb0
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 700a5dd377a206afdf56dd5ce7e74eeb1bb05370b1ad89889b1ff3b748eb4e3f
+  normalized_artifact: run/normalized-tasks.yaml
+tasks:
+  - task_id: "2"
+    title: Enforce session entry window
+    source_locator: work-items[id=2]
+    observed_attributes:
+      priority: high
+      dependencies: []
+    acceptance_refs:
+      - AC-ENTRY
+    route: GHERKIN
+    route_confidence: high
+    route_reasons:
+      - Entry behavior changes at exact time boundaries and by enrollment state.
+    risk_signals:
+      - time-boundary
+      - authorization
+    assumptions: []
+    spec_files:
+      - run/specs/task-2.feature
+    test_obligations:
+      - obligation_id: T2-opening-boundary
+        task_id: "2"
+        kind: scenario
+        description: Allow entry exactly ten minutes before start.
+        source: run/specs/task-2.feature#enter-at-the-opening-boundary
+        acceptance_refs:
+          - AC-ENTRY
+      - obligation_id: T2-closing-boundary
+        task_id: "2"
+        kind: scenario
+        description: Allow entry through exactly five minutes after start and deny the next minute.
+        source: run/specs/task-2.feature#enter-at-the-closing-boundary
+      - obligation_id: T2-enrollment
+        task_id: "2"
+        kind: scenario
+        description: Deny a non-enrolled user during the open window.
+        source: run/specs/task-2.feature#deny-a-non-enrolled-user-during-the-window
+    questions: []
+    author_status: READY_FOR_CRITIC

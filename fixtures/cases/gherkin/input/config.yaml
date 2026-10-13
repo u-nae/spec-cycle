@@ -1,0 +1,6 @@
+schema_version: "1.0"
+baseline:
+  - input/PRD.md
+decision_records: input/decisions
+work_items: input/work-items.yaml
+run_root: run

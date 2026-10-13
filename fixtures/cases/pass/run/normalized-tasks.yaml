@@ -1,0 +1,25 @@
+schema_version: "1.0"
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 13a8b70ed3deae061a74141a147720c32e2c8f8d42f2535e91550ff5d2748df0
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: e5d999e50db3a954017ea44e9a5f064fe09dd7d234dd104e9938670f7a0465cf
+normalization_warnings: []
+tasks:
+  - task_id: "1"
+    parent_task_id: null
+    title: Update profile helper copy
+    description: Replace the helper sentence below the display-name field.
+    details: Use the approved sentence verbatim. No validation or state behavior changes.
+    test_strategy: Verify that the approved sentence is rendered on the profile form.
+    status: pending
+    priority: low
+    dependencies: []
+    source_refs:
+      - input/PRD.md#profile-copy
+    acceptance_refs: []
+    source_locator: work-items[id=1]

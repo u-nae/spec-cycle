@@ -1,0 +1,25 @@
+schema_version: "1.0"
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: f476e0cba8688769d7d15f57d2cf011a469bee3e6d2634000acae71f631ddeba
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 42c341fd85a8b844f1fed379a26130dcbc9dd2411f2976b0085214c084087168
+normalization_warnings: []
+tasks:
+  - task_id: "5"
+    parent_task_id: null
+    title: Control session re-entry
+    description: Apply the session re-entry policy after a learner leaves.
+    details: The source contains conflicting re-entry statements and requires a business decision.
+    test_strategy: Resolve the conflict, then test the selected policy and its boundary.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#session-re-entry
+    acceptance_refs: []
+    source_locator: work-items[id=5]

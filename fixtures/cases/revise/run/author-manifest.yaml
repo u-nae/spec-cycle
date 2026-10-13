@@ -1,0 +1,47 @@
+schema_version: "1.0"
+run_id: fixture-revise
+generated_at: 2026-08-14T00:00:00.000Z
+revision_count: 0
+max_revisions: 2
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 9e3d7cca75841e35ae81de556c7995606c3035fe9468c17590ef24ef5eb35c56
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 89d9ebee318cdc3117c3ae19866d545d6123b1dc24db8c3ff10bcb91d3cbd02e
+  normalized_artifact: run/normalized-tasks.yaml
+tasks:
+  - task_id: "6"
+    title: Lock an account after failed sign-ins
+    source_locator: work-items[id=6]
+    observed_attributes:
+      priority: high
+      dependencies: []
+    acceptance_refs: []
+    route: GHERKIN
+    route_confidence: high
+    route_reasons:
+      - Consecutive failures, lock duration, exact unlock time, and reset behavior are observable state transitions.
+    risk_signals:
+      - authentication
+      - time-boundary
+      - state-transition
+    assumptions: []
+    spec_files:
+      - run/specs/task-6.feature
+    test_obligations:
+      - obligation_id: T6-lock
+        task_id: "6"
+        kind: scenario
+        description: Lock on the fifth consecutive failure.
+        source: run/specs/task-6.feature#lock-on-the-fifth-consecutive-failed-sign-in
+      - obligation_id: T6-reset
+        task_id: "6"
+        kind: scenario
+        description: Reset the failure counter after a successful sign-in.
+        source: run/specs/task-6.feature#reset-the-failure-counter-after-success
+    questions: []
+    author_status: READY_FOR_CRITIC

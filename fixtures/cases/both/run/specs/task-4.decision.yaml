@@ -1,0 +1,29 @@
+schema_version: "1.0"
+task_id: "4"
+decision_id: payment_approval
+execution_format: table-v1
+hit_policy: UNIQUE
+ordered_rules: false
+inputs:
+  - name: amount
+    type: string
+    allowed_values: ["0..100", "> 100 and <= 1000", "> 1000"]
+    blank_means: any
+outputs:
+  - name: decision
+    type: string
+    allowed_values: [AUTO_APPROVE, MANAGER_REVIEW, REJECT]
+rules:
+  - rule_id: R1
+    when: { amount: "0..100" }
+    then: { decision: AUTO_APPROVE }
+  - rule_id: R2
+    when: { amount: "> 100 and <= 1000" }
+    then: { decision: MANAGER_REVIEW }
+  - rule_id: R3
+    when: { amount: "> 1000" }
+    then: { decision: REJECT }
+default_rule: null
+gap_analysis: []
+overlap_analysis: []
+source_locators: [input/PRD.md#payment-approval]

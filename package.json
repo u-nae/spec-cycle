@@ -1,0 +1,20 @@
+{
+  "name": "spec-cycle-validation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "validate": "claude plugin validate . --strict && claude --plugin-dir . plugin details spec-cycle && npm test",
+    "validate:fixtures": "node scripts/spec-cycle.mjs validate-fixtures --root fixtures/cases",
+    "metrics": "node scripts/spec-cycle.mjs metrics --root fixtures/cases --out reports/fixture-metrics.yaml"
+  },
+  "dependencies": {
+    "@cucumber/gherkin": "42.0.1",
+    "@cucumber/messages": "34.2.1",
+    "yaml": "2.9.0"
+  }
+}

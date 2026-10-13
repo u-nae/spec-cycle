@@ -1,0 +1,25 @@
+schema_version: "1.0"
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: ad38c545fa15f1972ff1f47c7d53030f1c6c39dae7146ec7668104abeb852569
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 7be875ef8faa739b5f459db76ce08585585bcd23d91bd57a3d96ba6b5e7a0856
+normalization_warnings: []
+tasks:
+  - task_id: "3"
+    parent_task_id: null
+    title: Determine membership discount
+    description: Calculate a discount from membership tier and order subtotal.
+    details: Gold receives 20% from 100000, otherwise 10%. Silver receives 10% from 100000, otherwise 0%. None receives 0%.
+    test_strategy: Check every tier on both sides of the 100000 boundary and verify no rule overlap.
+    status: pending
+    priority: medium
+    dependencies: []
+    source_refs:
+      - input/PRD.md#membership-discount
+    acceptance_refs: []
+    source_locator: work-items[id=3]

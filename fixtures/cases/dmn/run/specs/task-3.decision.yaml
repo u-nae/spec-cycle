@@ -1,0 +1,39 @@
+schema_version: "1.0"
+task_id: "3"
+decision_id: membership-discount
+execution_format: table-v1
+hit_policy: UNIQUE
+ordered_rules: false
+inputs:
+  - name: membership_tier
+    type: string
+    allowed_values: [GOLD, SILVER, NONE]
+    blank_means: any
+  - name: order_subtotal
+    type: string
+    allowed_values: ["< 100000", ">= 100000"]
+    blank_means: any
+outputs:
+  - name: discount_percent
+    type: integer
+    allowed_values: [0, 10, 20]
+rules:
+  - rule_id: R1
+    when: { membership_tier: GOLD, order_subtotal: ">= 100000" }
+    then: { discount_percent: 20 }
+  - rule_id: R2
+    when: { membership_tier: GOLD, order_subtotal: "< 100000" }
+    then: { discount_percent: 10 }
+  - rule_id: R3
+    when: { membership_tier: SILVER, order_subtotal: ">= 100000" }
+    then: { discount_percent: 10 }
+  - rule_id: R4
+    when: { membership_tier: SILVER, order_subtotal: "< 100000" }
+    then: { discount_percent: 0 }
+  - rule_id: R5
+    when: { membership_tier: NONE, order_subtotal: any }
+    then: { discount_percent: 0 }
+default_rule: null
+gap_analysis: []
+overlap_analysis: []
+source_locators: [input/PRD.md#membership-discount]

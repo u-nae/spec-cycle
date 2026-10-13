@@ -1,0 +1,16 @@
+{
+  "name": "spec-cycle",
+  "description": "Personal marketplace for the spec-cycle plugin.",
+  "owner": {
+    "name": "unae"
+  },
+  "plugins": [
+    {
+      "name": "spec-cycle",
+      "source": "./",
+      "description": "Specification gate cycle: config-selected intake (native/Task Master) and execution (superpowers/inline/command) adapters around an independent-critic gate, with decision-table evaluation and obligation coverage verification",
+      "category": "development",
+      "tags": ["gherkin", "dmn", "tdd", "specification", "requirements"]
+    }
+  ]
+}

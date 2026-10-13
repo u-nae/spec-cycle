@@ -1,0 +1,17 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 6,
+        "title": "Undo the last confirmed change",
+        "description": "Let a user undo the most recent confirmed change once.",
+        "details": "Undo restores the previous value and records the undo in the change history. A second undo of the same change is rejected as ALREADY_UNDONE.",
+        "testStrategy": "Cover a successful undo, the history entry, and rejection of a repeated undo.",
+        "priority": "high",
+        "status": "pending",
+        "dependencies": [],
+        "subtasks": []
+      }
+    ]
+  }
+}

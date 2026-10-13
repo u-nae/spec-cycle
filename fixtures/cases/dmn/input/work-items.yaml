@@ -1,0 +1,13 @@
+schema_version: "1.0"
+items:
+  - id: "3"
+    title: Determine membership discount
+    description: Calculate a discount from membership tier and order subtotal.
+    details: Gold receives 20% from 100000, otherwise 10%. Silver receives 10% from 100000, otherwise 0%. None receives 0%.
+    test_strategy: Check every tier on both sides of the 100000 boundary and verify no rule overlap.
+    status: pending
+    priority: medium
+    dependencies: []
+    source_refs:
+      - input/PRD.md#membership-discount
+    acceptance_refs: []
