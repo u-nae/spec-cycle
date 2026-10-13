@@ -105,3 +105,12 @@ test('definitionalFields normalizes list order and ignores non-definitional keys
   assert.equal('status' in fields, false);
   assert.deepEqual(input.dependencies, ['W03', 'W02']);
 });
+
+test('set-status treats an item without a status key as pending', () => {
+  const project = workItemProject([{ id: 'W08', title: 'No status yet' }]);
+  const file = path.join(project, 'docs', 'work-items.yaml');
+  const result = run(['set-status', '--task', 'W08', '--status', 'in-progress'], project);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /from: pending/);
+  assert.equal(readYaml(file).items[0].status, 'in-progress');
+});

@@ -31,7 +31,8 @@ function setStatus({ workItemsFile, taskId, status }) {
   const doc = YAML.parseDocument(text);
   const node = YAML.isSeq(doc.get('items')) ? findItemNode(doc, taskId) : null;
   if (!node) throw new ValidationError([`work item ${taskId} not found`]);
-  const from = String(node.get('status'));
+  // A missing status means pending, matching the normalizer's default.
+  const from = node.has('status') ? String(node.get('status')) : 'pending';
   if (from === status) return { task_id: taskId, from, to: status };
   if (!(ALLOWED_TRANSITIONS[from] ?? []).includes(status)) {
     throw new ValidationError([`${taskId}: status transition ${from} -> ${status} is not allowed`]);
