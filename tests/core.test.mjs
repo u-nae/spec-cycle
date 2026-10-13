@@ -591,3 +591,23 @@ test('author validation rejects a rule obligation whose obligation_id differs fr
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /rule R1 of membership-discount must use obligation_id 3-membership-discount-R1/);
 });
+
+test('author validation rejects a vectors file whose table path is absolute', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'specs', 'task-3.decision.vectors.yaml'), (vectors) => {
+    vectors.table = path.join(project, 'run', 'specs', 'task-3.decision.yaml');
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /table must be repository-relative without parent traversal/);
+});
+
+test('author validation rejects a vectors table path that differs from the spec_files entry', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'specs', 'task-3.decision.vectors.yaml'), (vectors) => {
+    vectors.table = 'run/specs/other.decision.yaml';
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /table must be run\/specs\/task-3\.decision\.yaml/);
+});

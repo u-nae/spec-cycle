@@ -252,3 +252,11 @@ test('decision-vectors CLI refuses to overwrite a differing vectors file', () =>
   assert.equal(failed.status, 1);
   assert.match(failed.stderr, /^- hit_policy PRIORITY is not supported/m);
 });
+
+test('decision-vectors records an absolute --table as a path relative to the working directory', () => {
+  const directory = temporaryDirectory('decision');
+  writeYaml(path.join(directory, 'specs', 'W06.decision.yaml'), w06());
+  const result = run(['decision-vectors', '--table', path.join(directory, 'specs', 'W06.decision.yaml'), '--out', 'specs/W06.decision.vectors.yaml'], directory);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(YAML.parse(fs.readFileSync(path.join(directory, 'specs', 'W06.decision.vectors.yaml'), 'utf8')).table, 'specs/W06.decision.yaml');
+});

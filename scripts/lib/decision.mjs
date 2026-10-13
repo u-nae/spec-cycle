@@ -3,7 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import YAML from 'yaml';
 import {
-  ValidationError, asArray, isObject, optional, readYaml, required, sha256File,
+  ValidationError, asArray, isObject, optional, portablePath, readYaml, required, sha256File,
 } from './util.mjs';
 
 const MAX_CELLS = 10000;
@@ -226,6 +226,16 @@ function checkDecisionCommand(args) {
   if (evaluation.errors.length > 0) throw new ValidationError(evaluation.errors);
 }
 
+// The vectors artefact is committed, so it records the table relative to the working directory
+// (resolving symlinks such as macOS /var -> /private/var only when the plain path falls outside).
+function repositoryPath(table) {
+  try {
+    return portablePath(table, process.cwd());
+  } catch {
+    return portablePath(fs.realpathSync(table), fs.realpathSync(process.cwd()));
+  }
+}
+
 function decisionVectorsCommand(args) {
   const tablePath = required(args, 'table');
   const out = path.resolve(required(args, 'out'));
@@ -233,7 +243,7 @@ function decisionVectorsCommand(args) {
   const decision = readYaml(table);
   const artifact = vectorsArtifact({
     decision,
-    tablePath,
+    tablePath: repositoryPath(table),
     tableFingerprint: sha256File(table),
     taskId: isObject(decision) ? decision.task_id : undefined,
   });

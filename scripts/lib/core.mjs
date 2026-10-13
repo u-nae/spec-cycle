@@ -313,9 +313,10 @@ async function parseGherkin(file) {
   return parser.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function expectedVectors(decision, vectors, file, taskId) {
+// The table path is the table's own spec_files entry, never the value in the vectors file under test.
+function expectedVectors(decision, tablePath, file, taskId) {
   if (evaluateTable(decision).errors.length > 0) return null;
-  const artifact = vectorsArtifact({ decision, tablePath: vectors?.table, tableFingerprint: sha256File(file), taskId });
+  const artifact = vectorsArtifact({ decision, tablePath, tableFingerprint: sha256File(file), taskId });
   return YAML.parse(YAML.stringify(artifact));
 }
 
@@ -382,7 +383,14 @@ function validateDecision(file, expectedTaskId, context = null) {
             errors.push(`${vectorsFile}: invalid YAML: ${error.message}`);
             vectors = undefined;
           }
-          if (vectors !== undefined && !isDeepStrictEqual(vectors, expectedVectors(decision, vectors, file, context.taskId ?? expectedTaskId))) {
+          const tableErrors = [];
+          if (vectors !== undefined && vectors !== null && assertPortable(vectors.table, `${vectorsFile}: table`, tableErrors)
+            && vectors.table !== relative) {
+            tableErrors.push(`${vectorsFile}: table must be ${relative}, the table's spec_files entry`);
+          }
+          errors.push(...tableErrors);
+          if (vectors !== undefined && tableErrors.length === 0
+            && !isDeepStrictEqual(vectors, expectedVectors(decision, relative, file, context.taskId ?? expectedTaskId))) {
             errors.push(`${vectorsFile}: vectors file is stale: regenerate with decision-vectors`);
           }
         }
