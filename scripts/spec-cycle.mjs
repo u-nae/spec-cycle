@@ -11,12 +11,14 @@ let detectModule;
 let workItemsModule;
 let intakeTaskMasterModule;
 let decisionModule;
+let handoffModule;
 try {
   core = await import('./lib/core.mjs');
   detectModule = await import('./lib/detect.mjs');
   workItemsModule = await import('./lib/work-items.mjs');
   intakeTaskMasterModule = await import('./lib/intake-taskmaster.mjs');
   decisionModule = await import('./lib/decision.mjs');
+  handoffModule = await import('./lib/handoff.mjs');
 } catch (error) {
   if (error.code === 'ERR_MODULE_NOT_FOUND' && /'(yaml|@cucumber[^']*)'/.test(error.message)) {
     console.error(MISSING_DEPENDENCY_MESSAGE);
@@ -40,6 +42,7 @@ function usage() {
   spec-cycle.mjs resolve-inputs [--project <dir>] [--config <file>] [--task <id>]
   spec-cycle.mjs import-taskmaster [--tasks <file>] [--tag <name>] [--work-items <file>] [--config <file>]
   spec-cycle.mjs set-status --task <id> --status <status> [--config <file>]
+  spec-cycle.mjs resolve-handoff --task <id> [--config <file>] [--project <dir>]
   spec-cycle.mjs normalize --out <file> [--config <file>] [--task <id>]
   spec-cycle.mjs fingerprint (--file <file>|--manifest <author-manifest>)
   spec-cycle.mjs validate-author --manifest <file>
@@ -69,6 +72,9 @@ async function main() {
       break;
     case 'resolve-inputs':
       resolveInputsCommand(args);
+      break;
+    case 'resolve-handoff':
+      handoffModule.resolveHandoffCommand(args);
       break;
     case 'normalize':
       normalizeCommand(args);
