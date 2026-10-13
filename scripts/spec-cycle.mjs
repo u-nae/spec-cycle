@@ -10,11 +10,13 @@ let core;
 let detectModule;
 let workItemsModule;
 let intakeTaskMasterModule;
+let decisionModule;
 try {
   core = await import('./lib/core.mjs');
   detectModule = await import('./lib/detect.mjs');
   workItemsModule = await import('./lib/work-items.mjs');
   intakeTaskMasterModule = await import('./lib/intake-taskmaster.mjs');
+  decisionModule = await import('./lib/decision.mjs');
 } catch (error) {
   if (error.code === 'ERR_MODULE_NOT_FOUND' && /'(yaml|@cucumber[^']*)'/.test(error.message)) {
     console.error(MISSING_DEPENDENCY_MESSAGE);
@@ -45,6 +47,8 @@ function usage() {
   spec-cycle.mjs validate-decisions --decision-log <file> --manifest <file>
   spec-cycle.mjs build-handoff --manifest <file> --report <file> --out <file> [--decision-log <file>]
   spec-cycle.mjs validate-fixtures --root <directory>
+  spec-cycle.mjs check-decision --table <file>
+  spec-cycle.mjs decision-vectors --table <file> --out <file>
   spec-cycle.mjs metrics --root <directory> [--out <file>]`);
 }
 
@@ -90,6 +94,12 @@ async function main() {
       break;
     case 'validate-fixtures':
       await validateFixtures(path.resolve(required(args, 'root')));
+      break;
+    case 'check-decision':
+      decisionModule.checkDecisionCommand(args);
+      break;
+    case 'decision-vectors':
+      decisionModule.decisionVectorsCommand(args);
       break;
     case 'metrics':
       await metricsCommand(args);
