@@ -47,4 +47,30 @@ still use it in `external_ref`.
 
 ## Execution adapters
 
-Documented in Task 11.
+`execution.adapter` in `.spec-cycle/config.yaml` selects what `/spec-cycle:implement <id>` does after it has
+resolved the handoff, rendered `<run_dir>/spec-brief.md` and set the work item to `in-progress`.
+
+Common contract:
+
+- **Input**: the brief (`spec-brief.md`) and the READY handoff (`tdd-handoff.yaml`) of the work item.
+- **Output**: the next action the human takes, stated in the report. Adapters hand work over; they do not
+  finish it.
+- **Prohibitions**: an adapter never writes `done` (only `/spec-cycle:verify` does), never runs another
+  command on the human's behalf, and never approves anything (the handoff is already approved by the gate).
+- **Closing step**: every adapter ends by pointing at `/spec-cycle:verify <id>`.
+
+| Adapter | Behaviour | Next action for the human |
+| --- | --- | --- |
+| `superpowers` | Invokes `superpowers:writing-plans` with the brief as the spec and three conventions: brainstorming is not invoked (the handoff is the approved spec); every plan task lists the `obligation_id`s it proves on an `**Obligations:**` line; test names or tags carry the `obligation_id`. After the plan is saved, `check-plan` must report no `missing` obligation before execution starts. The execution-mode question belongs to superpowers and goes to the human unchanged. | Answer superpowers' execution question; after execution, run `/spec-cycle:verify <id>` before `superpowers:finishing-a-development-branch`. |
+| `inline` | Summarizes the brief and handoff. Only after the human says go, writes failing tests obligation by obligation in the same session (using `superpowers:test-driven-development` when available), with the `obligation_id` in test names or tags. | Say when to start; then `/spec-cycle:verify <id>`. |
+| `command` | Tells the human to invoke `execution.command` with the work item's external id, after reading the brief. The plugin never runs that command. | Run the configured command, then `/spec-cycle:verify <id>`. |
+
+### Fallback rule
+
+If `execution.adapter` is `superpowers` but `detect` reports `superpowers: false`, `implement` falls back to
+`inline` instead of failing, says so on the first line of its report, and leaves the config unchanged.
+
+### External-id rule (`command`)
+
+The external id is derived from the work item's `external_ref` (`taskmaster:master:6` gives `6`, so
+`/task-cycle 6`). When the item has no `external_ref`, the work item id (for example `W06`) is used.

@@ -13,7 +13,7 @@ argument-hint: "[work-item-id] [--config path]"
 
 ## 이 커맨드가 하지 않는 것
 
-- TDD 사이클을 실행하지 않는다. handoff 를 만들어 넘기는 것까지가 범위다.
+- 구현을 시작하지 않는다. handoff 를 만들어 다음 커맨드를 안내하는 것까지가 범위다(`/spec-cycle:implement`).
 - 애플리케이션 코드나 테스트를 쓰지 않는다.
 - 작업 항목 상태를 바꾸지 않는다.
 
@@ -49,6 +49,16 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs resolve-inputs [--project <dir>] [--conf
 `PLUGIN_ROOT/skills/specification-author/SKILL.md` 를 읽고 그 문서의 **"Author a new run"** 절을
 그대로 수행한다. 작성 규칙의 단일 출처는 그 파일이며 여기에 복제하지 않는다.
 
+route 가 DMN 또는 BOTH 면 결정표를 `execution_format: table-v1` 으로 쓴다. 표를 쓴 뒤 벡터를 생성하고
+생성된 `<task>.decision.vectors.yaml` 을 manifest 의 `spec_files` 에 넣는다.
+
+```
+node PLUGIN_ROOT/scripts/spec-cycle.mjs decision-vectors --table <task>.decision.yaml --out <task>.decision.vectors.yaml
+```
+
+규칙마다 별도 test obligation 을 둔다(규칙 단위 obligation). `review-only` 는 table-v1 문법으로 표현할 수 없는
+표(비유한 도메인, COLLECT 등)에만 쓰고 그 이유를 `assumptions` 에 적는다.
+
 작성이 끝나면 검증한다.
 
 ```
@@ -62,7 +72,9 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs validate-author --manifest <run_dir>/aut
 `specification-critic-agent` 서브에이전트를 호출한다. **비평을 이 컨텍스트에서 직접 수행하지
 않는다.** 작성자와 비평자가 같은 컨텍스트를 공유하면 이 게이트의 유일한 보증이 사라진다.
 
-에이전트 프롬프트에 절대경로 두 개를 명시해 넘긴다.
+비평자는 table-v1 결정표마다 `check-decision --table <file>` 을 실행하고 그 출력(gaps/overlaps)을 근거로
+쓴다. 산문 `gap_analysis` 는 증거로 받지 않는다. 에이전트 프롬프트에 이 지시와 함께 절대경로 두 개를
+명시해 넘긴다.
 
 - `PLUGIN_ROOT` — 플러그인 디렉터리 절대경로
 - `MANIFEST` — 검토할 author manifest 절대경로
@@ -108,20 +120,26 @@ manifest·critic 리포트를 보존한다. `revision_count` 를 정확히 1 증
 자동 진행을 멈춘다. 남은 critical/major 발견과 blocking 질문을 정리해 사람에게 보고한다.
 **handoff 를 만들지 않는다.** 스크립트도 이를 거부한다. 한계 도달을 성공으로 바꾸지 않는다.
 
-## 5. 결정 기록 승격과 TDD 인계
+## 5. 결정 기록 승격과 handoff 요약
 
 1. `decision-log.yaml` 이 있으면 각 결정을 프로젝트 결정 기록(`.spec-cycle/config.yaml` 의
    `decision_records`)으로 옮긴다. 형식은 `PLUGIN_ROOT/docs/integration.md` 의 "결정 기록 승격"을 따른다.
    handoff 생성 **후에** 한다 — 결정 기록이 바뀌면 같은 run 의 fingerprint 가 무효가 되기 때문이다.
-2. `tdd-handoff.yaml` 을 읽고 **구현 주체가 바로 쓸 수 있는 형태로** 요약해 제시한다.
+2. `tdd-handoff.yaml` 을 읽고 요약해 제시한다.
    - 대상 작업 항목과 route
    - 승인된 명세 경로
    - test obligation 목록 — 구현이 반드시 만족해야 하는 항목
    - `acceptance_coverage` — 수용 기준별로 증명하는 obligation
    - non-blocking note, decision log 경로(있으면)
-3. 다음 단계를 알린다: 사람이 지시하면 같은 세션에서 handoff 의 obligation 을 하나씩 실패하는 테스트로
-   옮기는 TDD 를 시작한다. 테스트 이름이나 태그에 `obligation_id` 를 남겨 추적성을 유지한다.
-   TDD 시작 시점은 사람이 정한다.
+
+## 6. 다음 행동 안내
+
+`.spec-cycle/config.yaml` 의 `execution.adapter` 를 읽어 다음 커맨드를 한 줄로 안내한다. 대신 실행하지 않는다.
+
+- `superpowers` 또는 `inline` — `/spec-cycle:implement <id>`
+- `command` — 설정된 `execution.command` 를 작업 항목의 외부 id 로 호출하라고 안내한다. 외부 id 는
+  `external_ref`(예: `taskmaster:master:6` → `6`)에서 얻고, 없으면 작업 항목 id 를 쓴다. 안내에
+  "brief를 먼저 읽을 것"을 붙인다. brief(`spec-brief.md`)는 `/spec-cycle:implement <id>` 가 만든다.
 
 ## 최종 보고
 
@@ -132,4 +150,4 @@ manifest·critic 리포트를 보존한다. `revision_count` 를 정확히 1 증
 - 작업 항목별 route 와 근거 한 줄
 - 사람이 답한 결정(권장안 채택 여부 포함)과 승격된 결정 기록 경로
 - `warnings` 에서 사람이 확인해 준 사항, 처리한 `notices`
-- 다음 행동 한 줄
+- 다음 행동 한 줄(어댑터별 커맨드)
