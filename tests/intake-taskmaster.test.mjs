@@ -154,3 +154,16 @@ test('import coerces numeric ids and string dependencies consistently', () => {
   assert.equal(out[1].subtasks[0].external_ref, 'taskmaster:master:4.2');
   assert.deepEqual(out[1].subtasks[0].dependencies, ['T1', 'T4.1']);
 });
+
+test('subtask dependencies stay parent-relative unless dotted, and the normalizer resolves them', () => {
+  const { dir, items } = project({ tasks: [
+    { id: 6, title: 'Undo', subtasks: [{ id: 1, title: 'Store' }, { id: 2, title: 'Apply', dependencies: [1, '5.2'] }] },
+  ] });
+  importTm(dir);
+  assert.deepEqual(readYaml(items).items[0].subtasks[1].dependencies, ['1', 'T5.2']);
+  const normalized = run(['normalize', '--out', 'out/normalized.yaml', '--task', 'T6'], dir);
+  assert.equal(normalized.status, 0, normalized.stderr);
+  const tasks = readYaml(path.join(dir, 'out', 'normalized.yaml')).tasks;
+  const sub = tasks.find((task) => task.task_id === 'T6.2');
+  assert.deepEqual(sub.dependencies, ['T6.1', 'T5.2']);
+});

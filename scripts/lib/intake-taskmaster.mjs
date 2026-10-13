@@ -19,6 +19,8 @@ const DEFAULT_TAG = 'master';
 const externalRef = (tag, id) => `taskmaster:${tag}:${id}`;
 const workItemId = (id) => `T${String(id)}`;
 const dependencyId = (dep) => `T${String(dep)}`;
+// A dotless subtask dependency is a sibling reference; the normalizer resolves it relative to the parent.
+const subtaskDependencyId = (dep) => (String(dep).includes('.') ? dependencyId(dep) : String(dep));
 const removalNote = (tag) => `Deferred: removed from Task Master tag ${tag} on import`;
 
 function readJson(file) {
@@ -54,7 +56,7 @@ function selectTasks(data, tag, file) {
   return data[tag].tasks;
 }
 
-function mapTask(task, label, warnings) {
+function mapTask(task, label, warnings, mapDependency) {
   let status = STATUS_MAP[task.status ?? 'pending'];
   if (status === undefined) {
     warnings.push(`task ${label}: unknown status ${task.status} mapped to pending`);
@@ -78,7 +80,7 @@ function mapTask(task, label, warnings) {
       details,
       test_strategy: task.testStrategy ?? '',
       priority,
-      dependencies: (task.dependencies ?? []).map(dependencyId),
+      dependencies: (task.dependencies ?? []).map(mapDependency),
     },
   };
 }
@@ -122,9 +124,9 @@ function importTaskMaster({ projectRoot, tasksFile, tag, workItemsFile }) {
   const refs = collectRefs(doc);
   const seen = new Set();
 
-  const place = (task, ref, label, fullId, parentSequence, newShape) => {
+  const place = (task, ref, label, fullId, parentSequence, newShape, mapDependency) => {
     seen.add(ref);
-    const mapped = mapTask(task, label, warnings);
+    const mapped = mapTask(task, label, warnings, mapDependency);
     const existing = refs.get(ref);
     if (existing) {
       mergeInto(existing.node, doc, mapped, fullId, result, warnings);
@@ -139,7 +141,7 @@ function importTaskMaster({ projectRoot, tasksFile, tag, workItemsFile }) {
   for (const task of tasks) {
     const parentId = String(task.id);
     const fullId = workItemId(task.id);
-    const node = place(task, externalRef(resolvedTag, parentId), parentId, fullId, doc.get('items'), { id: fullId });
+    const node = place(task, externalRef(resolvedTag, parentId), parentId, fullId, doc.get('items'), { id: fullId }, dependencyId);
     if (!Array.isArray(task.subtasks) || task.subtasks.length === 0) continue;
     let subtasks = node.get('subtasks');
     if (!YAML.isSeq(subtasks)) {
@@ -149,7 +151,7 @@ function importTaskMaster({ projectRoot, tasksFile, tag, workItemsFile }) {
     }
     for (const sub of task.subtasks) {
       const subId = `${parentId}.${sub.id}`;
-      place(sub, externalRef(resolvedTag, subId), subId, `${fullId}.${sub.id}`, subtasks, { id: String(sub.id) });
+      place(sub, externalRef(resolvedTag, subId), subId, `${fullId}.${sub.id}`, subtasks, { id: String(sub.id) }, subtaskDependencyId);
     }
   }
 

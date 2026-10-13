@@ -28,7 +28,8 @@ still use it in `external_ref`.
 | `acceptanceCriteria[]` | appended to `details` as `Acceptance criteria (Task Master):` plus a bullet list; `acceptance_refs` stays `[]` |
 | `priority` | `high`/`medium`/`low`; anything else becomes `medium` with a warning |
 | `status` | `pending`, `in-progress`, `done` as is; `review` becomes `in-progress`; `deferred` and `cancelled` become `deferred`; unknown becomes `pending` with a warning |
-| `dependencies` (`4`, `"5.2"`) | `T4`, `T5.2` |
+| task `dependencies` (`4`, `"5.2"`) | `T4`, `T5.2` |
+| subtask `dependencies` (`1`, `"5.2"`) | `"1"` (parent-relative sibling, resolved by the normalizer to `T6.1` under `T6`), `T5.2` (dotted references become absolute) |
 | (none) | `source_refs: []` on creation; enrich them afterwards |
 
 ### Re-import rules
