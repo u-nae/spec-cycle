@@ -25,7 +25,9 @@ const {
 
 function usage() {
   console.log(`Usage:
-  spec-cycle.mjs init --baseline <doc>[,<doc>...] [--decision-records <dir>] [--work-items <file>] [--run-root <dir>] [--project <dir>]
+  spec-cycle.mjs init (--baseline <doc>[,<doc>...] | --adopt <path>) [--decision-records <dir>] [--work-items <file>] [--run-root <dir>]
+                      [--intake <native|taskmaster>] [--execution <superpowers|inline|command>] [--command <slash>]
+                      [--test-globs <a,b>] [--project <dir>]
   spec-cycle.mjs resolve-inputs [--project <dir>] [--config <file>] [--task <id>]
   spec-cycle.mjs normalize --out <file> [--config <file>] [--task <id>]
   spec-cycle.mjs fingerprint (--file <file>|--manifest <author-manifest>)
