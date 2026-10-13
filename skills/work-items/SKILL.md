@@ -40,6 +40,16 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/contracts.md` ("Work-item list") first.
 - Use stable ids (`W01`, `W02`, ...). Never renumber existing ids; append new ones and mark dropped work
   `deferred` with the reason in `details`.
 
+## Intake adapter
+
+If `intake.adapter` in `.spec-cycle/config.yaml` is `taskmaster`, run
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/spec-cycle.mjs import-taskmaster` first instead of deriving items from
+scratch. The import is one-way and produces a draft. Then, for every item listed under `created` or
+`updated` in its output, apply the "Shape each item" rules to fill `source_refs` and `acceptance_refs`.
+Never change an item's `id` or `external_ref`; the Task Master id survives as `external_ref`. Report the
+import `warnings` (status mismatches, unknown statuses or priorities) to the user.
+See `${CLAUDE_PLUGIN_ROOT}/references/adapters.md` for the mapping and re-import rules.
+
 ## Boundaries
 
 - Do not resolve policy ambiguities here. If an item cannot be scoped without a policy decision, keep it,
