@@ -1,0 +1,5 @@
+manifest: run/author-manifest.yaml
+report: run/critic-pass-1.yaml
+routes: [GHERKIN]
+verdict: NEEDS_HUMAN
+

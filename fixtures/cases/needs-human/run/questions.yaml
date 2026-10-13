@@ -1,0 +1,20 @@
+schema_version: "1.0"
+run_id: fixture-needs-human
+questions:
+  - question_id: Q-5-reentry
+    task_id: "5"
+    blocking: true
+    ambiguity: The source both permits re-entry within ten minutes and prohibits all re-entry.
+    evidence: input/PRD.md#session-re-entry
+    question: After a learner leaves a live session, should re-entry be prohibited or allowed for ten minutes?
+    options:
+      - id: A
+        label: Prohibit re-entry
+        detail: Keeps the attendance-integrity rule and retires the ten-minute re-entry allowance; a learner who drops by accident cannot return.
+      - id: B
+        label: Allow for ten minutes
+        detail: Keeps the ten-minute allowance and narrows the attendance-integrity rule to absences longer than ten minutes.
+    recommended_default: B
+    recommendation_rationale: The ten-minute rule is the more specific statement (a bounded window) and reads as an exception to the general prohibition; choosing it keeps both sentences meaningful.
+    answer: null
+    answer_source: null

@@ -1,0 +1,38 @@
+schema_version: "1.0"
+run_id: fixture-needs-human
+critic_pass: 1
+reviewed_manifest: run/author-manifest.yaml
+reviewed_fingerprint: c68369ecf513bae62e546db1ffbd0b4167f095d09520993248ca012beda91b94
+verdict: NEEDS_HUMAN
+findings:
+  - finding_id: F-5-conflict
+    task_id: "5"
+    severity: major
+    category: contradiction
+    evidence: input/PRD.md#session-re-entry
+    explanation: The source simultaneously allows ten-minute re-entry and prohibits every re-entry, so TDD cannot select one behavior safely.
+    requested_change: Record a human decision and replace the partial feature with scenarios for the selected re-entry rule and its boundary.
+    requires_human: true
+questions:
+  - question_id: Q-5-reentry
+    task_id: "5"
+    blocking: true
+    ambiguity: The source both permits re-entry within ten minutes and prohibits all re-entry.
+    evidence: input/PRD.md#session-re-entry
+    question: After a learner leaves a live session, should re-entry be prohibited or allowed for ten minutes?
+    options:
+      - id: A
+        label: Prohibit re-entry
+        detail: Keeps the attendance-integrity rule and retires the ten-minute re-entry allowance; a learner who drops by accident cannot return.
+      - id: B
+        label: Allow for ten minutes
+        detail: Keeps the ten-minute allowance and narrows the attendance-integrity rule to absences longer than ten minutes.
+    recommended_default: B
+    recommendation_rationale: The ten-minute rule is the more specific statement (a bounded window) and reads as an exception to the general prohibition; choosing it keeps both sentences meaningful.
+    answer: null
+    answer_source: null
+summary:
+  critical_count: 0
+  major_count: 1
+  minor_count: 0
+  note_count: 0

@@ -1,0 +1,13 @@
+schema_version: "1.0"
+run_id: dry-run-reentry
+critic_pass: 2
+reviewed_manifest: fixtures/dry-run/run/author-manifest-revision-1.yaml
+reviewed_fingerprint: de004fd3d8b12e01aa4dab71248763ba55e45136e9a8fd35755c772ad4b09d91
+verdict: READY
+findings: []
+questions: []
+summary:
+  critical_count: 0
+  major_count: 0
+  minor_count: 0
+  note_count: 0

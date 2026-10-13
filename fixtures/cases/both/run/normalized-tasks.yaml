@@ -1,0 +1,27 @@
+schema_version: "1.0"
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 8826db58687b4439e1bf12c4afca49b3bf2708be23126cae1cb0604d98564741
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 01c9ab2645f512ed52d6a810d00b44304fcf9cdfed79b8d52734e7333e56a1d9
+normalization_warnings: []
+tasks:
+  - task_id: "4"
+    parent_task_id: null
+    title: Process payment through approval policy
+    description: Request an approval decision and transition payment state from its result.
+    details: Amounts through 100 are auto-approved, through 1000 require manager approval, and larger amounts are rejected.
+    test_strategy: Cover approval boundaries and observable payment state for each decision result.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#payment-approval
+    acceptance_refs:
+      - AC-PAY-1
+      - AC-PAY-2
+    source_locator: work-items[id=4]

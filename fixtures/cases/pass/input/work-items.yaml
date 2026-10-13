@@ -1,0 +1,13 @@
+schema_version: "1.0"
+items:
+  - id: "1"
+    title: Update profile helper copy
+    description: Replace the helper sentence below the display-name field.
+    details: Use the approved sentence verbatim. No validation or state behavior changes.
+    test_strategy: Verify that the approved sentence is rendered on the profile form.
+    status: pending
+    priority: low
+    dependencies: []
+    source_refs:
+      - input/PRD.md#profile-copy
+    acceptance_refs: []

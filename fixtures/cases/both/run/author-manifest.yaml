@@ -1,0 +1,54 @@
+schema_version: "1.0"
+run_id: fixture-both
+generated_at: 2026-08-14T00:00:00.000Z
+revision_count: 0
+max_revisions: 2
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 8826db58687b4439e1bf12c4afca49b3bf2708be23126cae1cb0604d98564741
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 01c9ab2645f512ed52d6a810d00b44304fcf9cdfed79b8d52734e7333e56a1d9
+  normalized_artifact: run/normalized-tasks.yaml
+tasks:
+  - task_id: "4"
+    title: Process payment through approval policy
+    source_locator: work-items[id=4]
+    observed_attributes:
+      priority: high
+      dependencies: []
+    acceptance_refs:
+      - AC-PAY-1
+      - AC-PAY-2
+    route: BOTH
+    route_confidence: high
+    route_reasons:
+      - Submission is an observable state transition that invokes an independently reviewable amount policy.
+    risk_signals:
+      - payment-state
+      - policy-combination
+      - monetary-boundary
+    assumptions: []
+    spec_files:
+      - run/specs/task-4.feature
+      - run/specs/task-4.decision.yaml
+    test_obligations:
+      - obligation_id: T4-flow
+        task_id: "4"
+        kind: scenario
+        description: Submit a pending payment and expose the state selected by payment_approval.
+        source: run/specs/task-4.feature#transition-a-submitted-payment-from-its-approval-decision
+        acceptance_refs:
+          - AC-PAY-1
+      - obligation_id: T4-policy
+        task_id: "4"
+        kind: decision-rule
+        description: Cover every payment_approval amount range and exact boundary.
+        source: run/specs/task-4.decision.yaml#rules
+        acceptance_refs:
+          - AC-PAY-2
+    questions: []
+    author_status: READY_FOR_CRITIC

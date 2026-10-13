@@ -1,0 +1,13 @@
+schema_version: "1.0"
+run_id: fixture-gherkin
+critic_pass: 1
+reviewed_manifest: run/author-manifest.yaml
+reviewed_fingerprint: a64d8a2ab4e0b1975ecdb65f86caab3352adae5668468dffb1debc97786d4d45
+verdict: READY
+findings: []
+questions: []
+summary:
+  critical_count: 0
+  major_count: 0
+  minor_count: 0
+  note_count: 0

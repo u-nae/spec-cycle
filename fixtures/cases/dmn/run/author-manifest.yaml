@@ -1,0 +1,46 @@
+schema_version: "1.0"
+run_id: fixture-dmn
+generated_at: 2026-08-14T00:00:00.000Z
+revision_count: 0
+max_revisions: 2
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: ad38c545fa15f1972ff1f47c7d53030f1c6c39dae7146ec7668104abeb852569
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 7be875ef8faa739b5f459db76ce08585585bcd23d91bd57a3d96ba6b5e7a0856
+  normalized_artifact: run/normalized-tasks.yaml
+tasks:
+  - task_id: "3"
+    title: Determine membership discount
+    source_locator: work-items[id=3]
+    observed_attributes:
+      priority: medium
+      dependencies: []
+    acceptance_refs: []
+    route: DMN
+    route_confidence: high
+    route_reasons:
+      - Membership tier and subtotal ranges combine into one discount decision whose gaps and overlaps must be visible.
+    risk_signals:
+      - policy-combination
+      - monetary-boundary
+    assumptions: []
+    spec_files:
+      - run/specs/task-3.decision.yaml
+    test_obligations:
+      - obligation_id: T3-rule-coverage
+        task_id: "3"
+        kind: decision-rule
+        description: Exercise each membership-discount rule and both subtotal boundary sides.
+        source: run/specs/task-3.decision.yaml#rules
+      - obligation_id: T3-table-integrity
+        task_id: "3"
+        kind: decision-coverage
+        description: Verify the UNIQUE table has no gap or overlap for valid inputs.
+        source: run/specs/task-3.decision.yaml#gap_analysis
+    questions: []
+    author_status: READY_FOR_CRITIC

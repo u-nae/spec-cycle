@@ -1,0 +1,68 @@
+schema_version: "1.0"
+run_id: dry-run-reentry
+generated_at: 2026-08-14T01:06:00.000Z
+revision_count: 1
+max_revisions: 2
+source:
+  baseline:
+    - path: fixtures/cases/needs-human/input/PRD.md
+      fingerprint: f476e0cba8688769d7d15f57d2cf011a469bee3e6d2634000acae71f631ddeba
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: fixtures/cases/needs-human/input/work-items.yaml
+  work_items_fingerprint: 42c341fd85a8b844f1fed379a26130dcbc9dd2411f2976b0085214c084087168
+  normalized_artifact: fixtures/dry-run/run/normalized-tasks.yaml
+tasks:
+  - task_id: "5"
+    title: Control session re-entry
+    source_locator: work-items[id=5]
+    observed_attributes:
+      priority: high
+      dependencies: []
+    acceptance_refs: []
+    route: GHERKIN
+    route_confidence: high
+    route_reasons:
+      - Re-entry is observable state and time-window behavior, and the recorded answer selects an inclusive ten-minute window.
+    risk_signals:
+      - state-transition
+      - time-window
+    assumptions: []
+    spec_files:
+      - fixtures/dry-run/run/specs/revision-1/task-5.feature
+    test_obligations:
+      - obligation_id: T5-leave
+        task_id: "5"
+        kind: scenario
+        description: Record the exact time when an enrolled learner leaves.
+        source: fixtures/dry-run/run/specs/revision-1/task-5.feature#record-that-an-enrolled-learner-left
+      - obligation_id: T5-reentry-boundary
+        task_id: "5"
+        kind: scenario
+        description: Allow re-entry exactly ten minutes after leaving.
+        source: fixtures/dry-run/run/specs/revision-1/task-5.feature#allow-re-entry-at-the-inclusive-boundary
+      - obligation_id: T5-reentry-closed
+        task_id: "5"
+        kind: scenario
+        description: Deny re-entry immediately after the inclusive boundary.
+        source: fixtures/dry-run/run/specs/revision-1/task-5.feature#deny-re-entry-after-the-boundary
+    questions:
+      - question_id: Q-5-reentry
+        task_id: "5"
+        blocking: true
+        ambiguity: The source both permits re-entry within ten minutes and prohibits all re-entry.
+        evidence: fixtures/cases/needs-human/input/PRD.md#session-re-entry
+        question: After a learner leaves a live session, should re-entry be prohibited or allowed for ten minutes?
+        options:
+          - id: A
+            label: Prohibit re-entry
+            detail: Keeps the attendance-integrity rule and retires the ten-minute re-entry allowance; a learner who drops by accident cannot return.
+          - id: B
+            label: Allow for ten minutes
+            detail: Keeps the ten-minute allowance and narrows the attendance-integrity rule to absences longer than ten minutes.
+        recommended_default: B
+        recommendation_rationale: The ten-minute rule is the more specific statement (a bounded window) and reads as an exception to the general prohibition; choosing it keeps both sentences meaningful.
+        answer: Allow re-entry for ten minutes.
+        answer_source: AskUserQuestion
+    author_status: READY_FOR_CRITIC

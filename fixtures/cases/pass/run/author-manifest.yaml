@@ -1,0 +1,38 @@
+schema_version: "1.0"
+run_id: fixture-pass
+generated_at: 2026-08-14T00:00:00.000Z
+revision_count: 0
+max_revisions: 2
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 13a8b70ed3deae061a74141a147720c32e2c8f8d42f2535e91550ff5d2748df0
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: e5d999e50db3a954017ea44e9a5f064fe09dd7d234dd104e9938670f7a0465cf
+  normalized_artifact: run/normalized-tasks.yaml
+tasks:
+  - task_id: "1"
+    title: Update profile helper copy
+    source_locator: work-items[id=1]
+    observed_attributes:
+      priority: low
+      dependencies: []
+    acceptance_refs: []
+    route: PASS
+    route_confidence: high
+    route_reasons:
+      - The source changes one approved sentence without branching, state, policy, or edge behavior.
+    risk_signals: []
+    assumptions: []
+    spec_files: []
+    test_obligations:
+      - obligation_id: T1-copy
+        task_id: "1"
+        kind: source-test-strategy
+        description: Verify the approved helper sentence is rendered verbatim.
+        source: master.tasks[id=1].testStrategy
+    questions: []
+    author_status: READY_FOR_CRITIC

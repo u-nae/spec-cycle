@@ -1,0 +1,25 @@
+schema_version: "1.0"
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 9e3d7cca75841e35ae81de556c7995606c3035fe9468c17590ef24ef5eb35c56
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: 89d9ebee318cdc3117c3ae19866d545d6123b1dc24db8c3ff10bcb91d3cbd02e
+normalization_warnings: []
+tasks:
+  - task_id: "6"
+    parent_task_id: null
+    title: Lock an account after failed sign-ins
+    description: Lock an account after five consecutive failures and automatically unlock it after 30 minutes.
+    details: A successful sign-in before the threshold resets the consecutive-failure counter.
+    test_strategy: Cover the fifth failure, automatic unlock boundary, and counter reset.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#account-lock
+    acceptance_refs: []
+    source_locator: work-items[id=6]

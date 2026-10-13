@@ -1,0 +1,21 @@
+schema_version: "1.0"
+run_id: fixture-revise
+critic_pass: 1
+reviewed_manifest: run/author-manifest.yaml
+reviewed_fingerprint: f56942a5198987c197bd39a62c3992c14b0bdbd63297780de7138919ab87729f
+verdict: REVISE
+findings:
+  - finding_id: F-6-unlock-boundary
+    task_id: "6"
+    severity: major
+    category: missing-case
+    evidence: input/PRD.md#account-lock
+    explanation: The feature omits locked behavior before 30 minutes and the explicitly inclusive unlock behavior at exactly 30 minutes.
+    requested_change: Add observable scenarios for a valid attempt immediately before the boundary and at exactly 30 minutes after locking.
+    requires_human: false
+questions: []
+summary:
+  critical_count: 0
+  major_count: 1
+  minor_count: 0
+  note_count: 0

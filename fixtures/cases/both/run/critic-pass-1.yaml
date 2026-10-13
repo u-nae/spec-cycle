@@ -1,0 +1,13 @@
+schema_version: "1.0"
+run_id: fixture-both
+critic_pass: 1
+reviewed_manifest: run/author-manifest.yaml
+reviewed_fingerprint: 6d095da9784885d000db1a31367dd66f2f993c215b6cba3b0feb71c224f83417
+verdict: READY
+findings: []
+questions: []
+summary:
+  critical_count: 0
+  major_count: 0
+  minor_count: 0
+  note_count: 0
