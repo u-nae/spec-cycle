@@ -1,0 +1,43 @@
+schema_version: "1.0"
+run_id: fixture-taskmaster
+generated_at: 2026-10-13T00:00:00.000Z
+revision_count: 0
+max_revisions: 2
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 3808e753af3b858f67026d0936698d179a8d6e482c57b7d793b8b827dc05a769
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: edbf829c8d6479aa667926d270ec7445e52656dfbc9d59cff077ed8a5a3dd200
+  normalized_artifact: run/normalized-tasks.yaml
+tasks:
+  - task_id: T6
+    title: Undo the last confirmed change
+    source_locator: work-items[id=T6]
+    observed_attributes:
+      priority: high
+      dependencies: []
+    acceptance_refs:
+      - A01
+    route: GHERKIN
+    route_confidence: high
+    route_reasons:
+      - Undo is a stateful sequence whose second request must be rejected.
+    risk_signals:
+      - state-change
+    assumptions: []
+    spec_files:
+      - run/specs/task-T6.feature
+    test_obligations:
+      - obligation_id: T6-undo-once
+        task_id: T6
+        kind: scenario
+        description: Undo restores the previous value, is recorded in history, and a repeat is rejected.
+        source: run/specs/task-T6.feature#undo-restores-the-previous-value-and-a-repeat-is-rejected
+        acceptance_refs:
+          - A01
+    questions: []
+    author_status: READY_FOR_CRITIC

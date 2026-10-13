@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import YAML from 'yaml';
@@ -10,6 +11,7 @@ import {
 } from './util.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { evaluateTable, vectorsArtifact, obligationIdFor } from './decision.mjs';
+import { importTaskMaster } from './intake-taskmaster.mjs';
 import { loadConfig, initCommand, DEFAULT_CONFIG, DEFAULT_RUN_ROOT } from './config.mjs';
 
 const ROUTES = new Set(['PASS', 'GHERKIN', 'DMN', 'BOTH']);
@@ -784,6 +786,35 @@ function walkFiles(root, predicate) {
   return results;
 }
 
+// Re-import input/tasks.json in a scratch directory and compare id, external_ref and title with the fixture's work items.
+function checkTaskMasterImport(fixtureRoot) {
+  const tasksFile = path.join(fixtureRoot, 'input', 'tasks.json');
+  if (!fs.existsSync(tasksFile)) return { status: null };
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'spec-cycle-fixture-import-'));
+  try {
+    fs.copyFileSync(tasksFile, path.join(scratch, 'tasks.json'));
+    const config = readYaml(path.join(fixtureRoot, 'input', 'config.yaml'));
+    const workItemsFile = path.join(scratch, 'work-items.yaml');
+    importTaskMaster({
+      projectRoot: scratch,
+      tasksFile: path.join(scratch, 'tasks.json'),
+      tag: config?.intake?.taskmaster?.tag,
+      workItemsFile,
+    });
+    const pick = (file) => asArray(readYaml(file)?.items).map((item) => ({ id: item.id, external_ref: item.external_ref, title: item.title }));
+    const imported = pick(workItemsFile);
+    const expected = pick(path.join(fixtureRoot, 'input', 'work-items.yaml'));
+    if (!isDeepStrictEqual(imported, expected)) {
+      return { status: 'FAIL', reason: `Task Master import differs from input/work-items.yaml: imported ${JSON.stringify(imported)}, fixture ${JSON.stringify(expected)}` };
+    }
+    return { status: 'PASS' };
+  } catch (error) {
+    return { status: 'FAIL', reason: `Task Master import failed: ${error.message}` };
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
 async function validateFixtures(root) {
   const expectationFiles = walkFiles(root, (file) => path.basename(file) === 'expected.yaml');
   const results = [];
@@ -798,7 +829,12 @@ async function validateFixtures(root) {
       const routes = manifest.tasks.map((task) => task.route);
       if (JSON.stringify(routes) !== JSON.stringify(expected.routes)) throw new Error(`Expected routes ${expected.routes}, got ${routes}`);
       if (report.verdict !== expected.verdict) throw new Error(`Expected verdict ${expected.verdict}, got ${report.verdict}`);
-      results.push({ fixture: path.basename(fixtureRoot), status: 'PASS', routes, verdict: report.verdict });
+      const imported = checkTaskMasterImport(fixtureRoot);
+      if (imported.status === 'FAIL') {
+        results.push({ fixture: path.basename(fixtureRoot), status: 'FAIL', error: imported.reason, taskmaster_import: 'FAIL' });
+        continue;
+      }
+      results.push({ fixture: path.basename(fixtureRoot), status: 'PASS', routes, verdict: report.verdict, taskmaster_import: imported.status });
     } catch (error) {
       results.push({ fixture: path.basename(fixtureRoot), status: 'FAIL', error: error.message });
     }

@@ -10,21 +10,37 @@ import {
 } from './helpers.mjs';
 
 registerCleanup();
-test('all six semantic fixtures satisfy their expected route and verdict', () => {
+test('all seven semantic fixtures satisfy their expected route and verdict', () => {
   const result = run(['validate-fixtures', '--root', fixtures]);
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const output = YAML.parse(result.stdout);
-  assert.equal(output.results.length, 6);
-  assert.deepEqual(new Set(output.results.map((item) => item.fixture)), new Set(['pass', 'gherkin', 'dmn', 'both', 'needs-human', 'revise']));
+  assert.equal(output.results.length, 7);
+  assert.deepEqual(new Set(output.results.map((item) => item.fixture)), new Set(['pass', 'gherkin', 'dmn', 'both', 'needs-human', 'revise', 'taskmaster']));
   assert.ok(output.results.every((item) => item.status === 'PASS'));
+});
+
+test('taskmaster fixture work items are reproducible from tasks.json by import', () => {
+  const project = temporaryDirectory('taskmaster-fixture');
+  fs.mkdirSync(path.join(project, 'input'), { recursive: true });
+  for (const name of ['tasks.json', 'config.yaml', 'PRD.md']) {
+    fs.copyFileSync(path.join(fixtures, 'taskmaster', 'input', name), path.join(project, 'input', name));
+  }
+  fs.writeFileSync(path.join(project, 'input', 'work-items.yaml'), 'schema_version: "1.0"\nitems: []\n');
+  const imported = run(['import-taskmaster', '--tasks', 'input/tasks.json', '--tag', 'master', '--work-items', 'input/work-items.yaml', '--config', 'input/config.yaml'], project);
+  assert.equal(imported.status, 0, imported.stderr || imported.stdout);
+  const pick = (file) => readYaml(file).items.map(({ id, external_ref, title }) => ({ id, external_ref, title }));
+  const actual = pick(path.join(project, 'input', 'work-items.yaml'));
+  assert.deepEqual(actual, pick(path.join(fixtures, 'taskmaster', 'input', 'work-items.yaml')));
+  assert.equal(actual[0].id, 'T6');
+  assert.equal(actual[0].external_ref, 'taskmaster:master:6');
 });
 
 test('fixture metrics preserve traceability and expose the small-sample caveat', () => {
   const result = run(['metrics', '--root', fixtures]);
   assert.equal(result.status, 0, result.stderr);
   const metrics = YAML.parse(result.stdout);
-  assert.equal(metrics.sample.runs, 6);
-  assert.equal(metrics.sample.tasks, 6);
+  assert.equal(metrics.sample.runs, 7);
+  assert.equal(metrics.sample.tasks, 7);
   assert.equal(metrics.traceability_completeness, 1);
   assert.match(metrics.note, /Fixture sample only/);
 });

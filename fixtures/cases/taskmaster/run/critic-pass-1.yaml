@@ -1,0 +1,13 @@
+schema_version: "1.0"
+run_id: fixture-taskmaster
+critic_pass: 1
+reviewed_manifest: run/author-manifest.yaml
+reviewed_fingerprint: 963f9f0d22c8feec03597d646d71065eb6c726b724a8fb5c5978faa1a9934923
+verdict: READY
+findings: []
+questions: []
+summary:
+  critical_count: 0
+  major_count: 0
+  minor_count: 0
+  note_count: 0

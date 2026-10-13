@@ -1,0 +1,15 @@
+schema_version: "1.0"
+items:
+  - id: T6
+    title: Undo the last confirmed change
+    description: Let a user undo the most recent confirmed change once.
+    details: Undo restores the previous value and records the undo in the change history. A second undo of the same change is rejected as ALREADY_UNDONE.
+    test_strategy: Cover a successful undo, the history entry, and rejection of a repeated undo.
+    priority: high
+    dependencies: []
+    status: pending
+    source_refs:
+      - input/PRD.md#undo
+    acceptance_refs:
+      - A01
+    external_ref: taskmaster:master:6

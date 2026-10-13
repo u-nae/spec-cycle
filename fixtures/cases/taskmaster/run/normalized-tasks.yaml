@@ -1,0 +1,26 @@
+schema_version: "1.0"
+source:
+  baseline:
+    - path: input/PRD.md
+      fingerprint: 3808e753af3b858f67026d0936698d179a8d6e482c57b7d793b8b827dc05a769
+  decision_records:
+    path: null
+    fingerprint: 2ce44af5107d27253340c01df22211b73b29ff773b659138cd1397fbea9ede21
+  work_items_artifact: input/work-items.yaml
+  work_items_fingerprint: edbf829c8d6479aa667926d270ec7445e52656dfbc9d59cff077ed8a5a3dd200
+normalization_warnings: []
+tasks:
+  - task_id: T6
+    parent_task_id: null
+    title: Undo the last confirmed change
+    description: Let a user undo the most recent confirmed change once.
+    details: Undo restores the previous value and records the undo in the change history. A second undo of the same change is rejected as ALREADY_UNDONE.
+    test_strategy: Cover a successful undo, the history entry, and rejection of a repeated undo.
+    status: pending
+    priority: high
+    dependencies: []
+    source_refs:
+      - input/PRD.md#undo
+    acceptance_refs:
+      - A01
+    source_locator: work-items[id=T6]
