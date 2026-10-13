@@ -8,9 +8,11 @@ const MISSING_DEPENDENCY_MESSAGE =
 
 let core;
 let detectModule;
+let workItemsModule;
 try {
   core = await import('./lib/core.mjs');
   detectModule = await import('./lib/detect.mjs');
+  workItemsModule = await import('./lib/work-items.mjs');
 } catch (error) {
   if (error.code === 'ERR_MODULE_NOT_FOUND' && /'(yaml|@cucumber[^']*)'/.test(error.message)) {
     console.error(MISSING_DEPENDENCY_MESSAGE);
@@ -32,6 +34,7 @@ function usage() {
                       [--test-globs <a,b>] [--project <dir>]
   spec-cycle.mjs detect [--project <dir>]
   spec-cycle.mjs resolve-inputs [--project <dir>] [--config <file>] [--task <id>]
+  spec-cycle.mjs set-status --task <id> --status <status> [--config <file>]
   spec-cycle.mjs normalize --out <file> [--config <file>] [--task <id>]
   spec-cycle.mjs fingerprint (--file <file>|--manifest <author-manifest>)
   spec-cycle.mjs validate-author --manifest <file>
@@ -50,6 +53,9 @@ async function main() {
       break;
     case 'detect':
       detectModule.detectCommand(args);
+      break;
+    case 'set-status':
+      workItemsModule.setStatusCommand(args);
       break;
     case 'resolve-inputs':
       resolveInputsCommand(args);
