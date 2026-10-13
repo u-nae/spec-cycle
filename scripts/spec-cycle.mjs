@@ -12,6 +12,7 @@ let workItemsModule;
 let intakeTaskMasterModule;
 let decisionModule;
 let handoffModule;
+let briefModule;
 try {
   core = await import('./lib/core.mjs');
   detectModule = await import('./lib/detect.mjs');
@@ -19,6 +20,7 @@ try {
   intakeTaskMasterModule = await import('./lib/intake-taskmaster.mjs');
   decisionModule = await import('./lib/decision.mjs');
   handoffModule = await import('./lib/handoff.mjs');
+  briefModule = await import('./lib/brief.mjs');
 } catch (error) {
   if (error.code === 'ERR_MODULE_NOT_FOUND' && /'(yaml|@cucumber[^']*)'/.test(error.message)) {
     console.error(MISSING_DEPENDENCY_MESSAGE);
@@ -52,6 +54,8 @@ function usage() {
   spec-cycle.mjs validate-fixtures --root <directory>
   spec-cycle.mjs check-decision --table <file>
   spec-cycle.mjs decision-vectors --table <file> --out <file>
+  spec-cycle.mjs render-brief --handoff <file> --out <file>
+  spec-cycle.mjs check-plan --plan <file> --handoff <file>
   spec-cycle.mjs metrics --root <directory> [--out <file>]`);
 }
 
@@ -106,6 +110,12 @@ async function main() {
       break;
     case 'decision-vectors':
       decisionModule.decisionVectorsCommand(args);
+      break;
+    case 'render-brief':
+      briefModule.renderBriefCommand(args);
+      break;
+    case 'check-plan':
+      briefModule.checkPlanCommand(args);
       break;
     case 'metrics':
       await metricsCommand(args);
