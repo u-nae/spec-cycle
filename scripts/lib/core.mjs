@@ -4,6 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import YAML from 'yaml';
+import {
+  ValidationError, parseArgs, required, optional, readYaml, writeYaml, sha256File, isBlank, asArray, isObject,
+  portablePath, assertPortable,
+} from './util.mjs';
+import { loadConfig, initCommand, DEFAULT_CONFIG, DEFAULT_RUN_ROOT } from './config.mjs';
 
 const ROUTES = new Set(['PASS', 'GHERKIN', 'DMN', 'BOTH']);
 const CONFIDENCE = new Set(['high', 'medium', 'low']);
@@ -23,69 +28,10 @@ const CATEGORIES = new Set([
   'policy-gap',
   'invariant-gap',
 ]);
-const DEFAULT_CONFIG = '.spec-cycle/config.yaml';
-const DEFAULT_RUN_ROOT = '.spec-cycle/runs';
 const ITEM_ID = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
-class ValidationError extends Error {
-  constructor(errors) {
-    super(errors.join('\n'));
-    this.name = 'ValidationError';
-    this.errors = errors;
-  }
-}
-
-function parseArgs(argv) {
-  const [command, ...tokens] = argv;
-  const args = { _: [] };
-  for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index];
-    if (!token.startsWith('--')) {
-      args._.push(token);
-      continue;
-    }
-    const key = token.slice(2);
-    const next = tokens[index + 1];
-    if (!next || next.startsWith('--')) {
-      args[key] = true;
-      continue;
-    }
-    args[key] = next;
-    index += 1;
-  }
-  return { command, args };
-}
-
-function required(args, key) {
-  if (!args[key] || args[key] === true) {
-    throw new Error(`Missing required option --${key}`);
-  }
-  return args[key];
-}
-
-function optional(args, key) {
-  return args[key] && args[key] !== true ? String(args[key]) : null;
-}
-
-function readYaml(file) {
-  return YAML.parse(fs.readFileSync(file, 'utf8'));
-}
-
-function writeYaml(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, YAML.stringify(value, { lineWidth: 0 }));
-}
-
-function sha256File(file) {
-  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-}
 
 function isSha256(value) {
   return typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
-}
-
-function isBlank(value) {
-  return value === null || value === undefined || value === '';
 }
 
 function authorReviewFingerprint(manifestFile) {
@@ -104,35 +50,6 @@ function authorReviewFingerprint(manifestFile) {
     else hash.update('<missing>');
   }
   return hash.digest('hex');
-}
-
-function isObject(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function asArray(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function portablePath(file, projectRoot = process.cwd()) {
-  const relative = path.relative(projectRoot, path.resolve(projectRoot, file));
-  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
-    if (!relative) return '.';
-    throw new Error(`Path is outside project root: ${file}`);
-  }
-  return relative.split(path.sep).join('/');
-}
-
-function assertPortable(value, label, errors) {
-  if (typeof value !== 'string' || value.length === 0) {
-    errors.push(`${label} must be a non-empty repository-relative path`);
-    return false;
-  }
-  if (path.isAbsolute(value) || value.split(/[\\/]/).includes('..')) {
-    errors.push(`${label} must be repository-relative without parent traversal: ${value}`);
-    return false;
-  }
-  return true;
 }
 
 function findProjectRoot(artifactFile, sourcePath) {
@@ -154,42 +71,6 @@ function resolveArtifact(projectRoot, artifactPath) {
 // ---------------------------------------------------------------------------
 // Sources: baseline documents, decision records, and the work-item list.
 // ---------------------------------------------------------------------------
-
-function loadConfig(projectRoot, configArg) {
-  const relative = configArg || DEFAULT_CONFIG;
-  const full = path.resolve(projectRoot, relative);
-  if (!fs.existsSync(full)) {
-    throw new ValidationError([
-      `Spec gate config not found: ${relative}`,
-      'Create it with: spec-cycle.mjs init --baseline <doc>[,<doc>...] [--decision-records <dir>] [--work-items <file>]',
-    ]);
-  }
-  const config = readYaml(full);
-  const errors = [];
-  if (config?.schema_version !== '1.0') errors.push(`${relative}: schema_version must be 1.0`);
-  const baseline = asArray(config?.baseline);
-  if (baseline.length === 0) errors.push(`${relative}: baseline must list at least one document`);
-  for (const [index, doc] of baseline.entries()) {
-    if (assertPortable(doc, `${relative}: baseline[${index}]`, errors) && !fs.existsSync(path.join(projectRoot, doc))) {
-      errors.push(`${relative}: baseline document not found: ${doc}`);
-    }
-  }
-  if (new Set(baseline).size !== baseline.length) errors.push(`${relative}: baseline contains duplicates`);
-  if (!isBlank(config?.decision_records)) assertPortable(config.decision_records, `${relative}: decision_records`, errors);
-  if (assertPortable(config?.work_items, `${relative}: work_items`, errors) && !fs.existsSync(path.join(projectRoot, config.work_items))) {
-    errors.push(`${relative}: work item list not found: ${config.work_items}`);
-  }
-  const runRoot = config?.run_root ?? DEFAULT_RUN_ROOT;
-  assertPortable(runRoot, `${relative}: run_root`, errors);
-  if (errors.length) throw new ValidationError(errors);
-  return {
-    path: portablePath(full, projectRoot),
-    baseline,
-    decision_records: isBlank(config.decision_records) ? null : config.decision_records,
-    work_items: config.work_items,
-    run_root: runRoot,
-  };
-}
 
 function decisionRecordFiles(projectRoot, directory) {
   if (!directory) return [];
@@ -413,44 +294,6 @@ function resolveInputsCommand(args) {
   }
   console.log(YAML.stringify(resolution, { lineWidth: 0 }));
   return resolution;
-}
-
-function initCommand(args) {
-  const projectRoot = path.resolve(optional(args, 'project') ?? process.cwd());
-  const baseline = required(args, 'baseline').split(',').map((entry) => entry.trim()).filter(Boolean);
-  const decisionRecords = optional(args, 'decision-records');
-  const workItems = optional(args, 'work-items') ?? 'docs/work-items.yaml';
-  const runRoot = optional(args, 'run-root') ?? DEFAULT_RUN_ROOT;
-  const configFile = path.join(projectRoot, DEFAULT_CONFIG);
-  if (fs.existsSync(configFile)) throw new Error(`Refusing to overwrite existing config: ${DEFAULT_CONFIG}`);
-  const errors = [];
-  for (const doc of baseline) {
-    if (assertPortable(doc, `baseline ${doc}`, errors) && !fs.existsSync(path.join(projectRoot, doc))) {
-      errors.push(`baseline document not found: ${doc}`);
-    }
-  }
-  if (decisionRecords) assertPortable(decisionRecords, 'decision-records', errors);
-  assertPortable(workItems, 'work-items', errors);
-  assertPortable(runRoot, 'run-root', errors);
-  if (errors.length) throw new ValidationError(errors);
-  writeYaml(configFile, {
-    schema_version: '1.0',
-    baseline,
-    decision_records: decisionRecords,
-    work_items: workItems,
-    run_root: runRoot,
-  });
-  const created = [DEFAULT_CONFIG];
-  const workItemsFile = path.join(projectRoot, workItems);
-  if (!fs.existsSync(workItemsFile)) {
-    writeYaml(workItemsFile, { schema_version: '1.0', items: [] });
-    created.push(workItems);
-  }
-  if (decisionRecords && !fs.existsSync(path.join(projectRoot, decisionRecords))) {
-    fs.mkdirSync(path.join(projectRoot, decisionRecords), { recursive: true });
-    created.push(`${decisionRecords}/`);
-  }
-  console.log(YAML.stringify({ created }, { lineWidth: 0 }));
 }
 
 // ---------------------------------------------------------------------------

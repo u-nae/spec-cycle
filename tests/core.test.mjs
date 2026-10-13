@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import YAML from 'yaml';
 import {
-  pluginRoot, cli, fixtures, run, temporaryDirectory, temporaryFixture, readYaml, writeYaml, editYaml,
+  pluginRoot, fixtures, run, temporaryDirectory, temporaryFixture, readYaml, editYaml,
   refreshFingerprint, workItemProject, defaultItems, registerCleanup,
 } from './helpers.mjs';
 
