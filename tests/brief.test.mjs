@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import YAML from 'yaml';
-import { readYaml, registerCleanup, run, temporaryFixture, writeYaml } from './helpers.mjs';
+import { editYaml, readYaml, registerCleanup, run, temporaryFixture, writeYaml } from './helpers.mjs';
 
 registerCleanup();
 
@@ -113,4 +113,15 @@ test('check-plan passes when every obligation appears', () => {
   const result = run(['check-plan', '--plan', plan, '--handoff', 'run/tdd-handoff.yaml'], project);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(YAML.parse(result.stdout), { total: ids.length, missing: [] });
+});
+
+test('check-plan fails when the handoff has no test obligations', () => {
+  const { project, handoffFile } = handoffProject('dmn');
+  editYaml(handoffFile, (handoff) => {
+    handoff.test_obligations = [];
+  });
+  const plan = writePlan(project, ['anything']);
+  const result = run(['check-plan', '--plan', plan, '--handoff', 'run/tdd-handoff.yaml'], project);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /- handoff has no test obligations/);
 });

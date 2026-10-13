@@ -190,6 +190,7 @@ function checkPlan({ planFile, handoffFile }) {
   const text = fs.readFileSync(planFile, 'utf8');
   const handoff = readYaml(handoffFile);
   const ids = asArray(handoff?.test_obligations).map((item) => String(item.obligation_id));
+  if (ids.length === 0) throw new ValidationError(['handoff has no test obligations']);
   return { total: ids.length, missing: ids.filter((id) => !containsId(text, id)) };
 }
 

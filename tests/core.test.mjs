@@ -65,7 +65,7 @@ test('resolve-inputs fails with an init hint when the config is missing', () => 
   const project = temporaryDirectory('no-config');
   const result = run(['resolve-inputs'], project);
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /config not found/i);
+  assert.match(result.stderr, /spec-cycle config not found/);
   assert.match(result.stderr, /init --baseline/);
 });
 

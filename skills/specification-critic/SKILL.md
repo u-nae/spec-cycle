@@ -1,6 +1,6 @@
 ---
 name: specification-critic
-description: Explicitly and independently review a specification-author manifest and its source-linked Gherkin or review-only decision tables before TDD. Use after specification-author or after each bounded revision to emit an evidence-backed READY, REVISE, NEEDS_HUMAN, or BLOCKED_AT_LIMIT report. Do not use to author, edit, silently repair, implement, test, or approve stale specifications.
+description: Explicitly and independently review a specification-author manifest and its source-linked Gherkin or decision tables (table-v1 or review-only) before TDD. Use after specification-author or after each bounded revision to emit an evidence-backed READY, REVISE, NEEDS_HUMAN, or BLOCKED_AT_LIMIT report. Do not use to author, edit, silently repair, implement, test, or approve stale specifications.
 disable-model-invocation: true
 argument-hint: "<author-manifest.yaml>"
 context: fork

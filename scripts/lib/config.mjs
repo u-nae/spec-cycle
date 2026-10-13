@@ -19,7 +19,7 @@ function loadConfig(projectRoot, configArg) {
   const full = path.resolve(projectRoot, relative);
   if (!fs.existsSync(full)) {
     throw new ValidationError([
-      `Spec gate config not found: ${relative}`,
+      `spec-cycle config not found: ${relative}`,
       'Create it with: spec-cycle.mjs init --baseline <doc>[,<doc>...] [--decision-records <dir>] [--work-items <file>]',
     ]);
   }
