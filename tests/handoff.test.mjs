@@ -3,34 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  defaultItems, editYaml, readYaml, registerCleanup, run, temporaryDirectory, workItemProject, writeYaml,
+  defaultItems, editYaml, handoffProject, readYaml, registerCleanup, run, temporaryDirectory, workItemProject, writeRun, writeYaml,
 } from './helpers.mjs';
 
 registerCleanup();
-
-// Writes a READY-looking run whose source block comes from the real CLI so fingerprints match the project.
-function writeRun(project, runId, { schemaVersion = '1.1', taskId = 'W01', decisionVectors = true } = {}) {
-  const runDir = path.join(project, '.spec-cycle', 'runs', runId);
-  fs.mkdirSync(runDir, { recursive: true });
-  const normalized = path.join(runDir, 'normalized-tasks.yaml');
-  const normalize = run(['normalize', '--out', normalized, '--task', taskId], project);
-  assert.equal(normalize.status, 0, normalize.stderr);
-  const handoff = {
-    schema_version: schemaVersion,
-    run_id: runId,
-    source: readYaml(normalized).source,
-    source_tasks: [{ task_id: taskId }],
-    test_obligations: [],
-  };
-  if (decisionVectors) handoff.decision_vectors = [];
-  writeYaml(path.join(runDir, 'tdd-handoff.yaml'), handoff);
-  return { runDir, handoffFile: path.join(runDir, 'tdd-handoff.yaml') };
-}
-
-function handoffProject(options) {
-  const project = workItemProject(defaultItems.map((item) => ({ ...item })));
-  return { project, ...writeRun(project, 't-w01-aaaa', options) };
-}
 
 function resolution(project, task = 'W01') {
   const result = run(['resolve-handoff', '--task', task], project);

@@ -11,4 +11,4 @@ function containsId(text, id) {
   return idPattern(id).test(String(text));
 }
 
-export { containsId, idPattern };
+export { containsId, idPattern, escapeRegExp };

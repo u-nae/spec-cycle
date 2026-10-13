@@ -79,4 +79,28 @@ export const defaultItems = [
   { id: 'W04', title: 'Foreign reference', status: 'pending', source_refs: ['docs/OTHER.md#x'] },
 ];
 
+// Writes a READY-looking run whose source block comes from the real CLI so fingerprints match the project.
+export function writeRun(project, runId, { schemaVersion = '1.1', taskId = 'W01', decisionVectors = true } = {}) {
+  const runDir = path.join(project, '.spec-cycle', 'runs', runId);
+  fs.mkdirSync(runDir, { recursive: true });
+  const normalized = path.join(runDir, 'normalized-tasks.yaml');
+  const normalize = run(['normalize', '--out', normalized, '--task', taskId], project);
+  assert.equal(normalize.status, 0, normalize.stderr);
+  const handoff = {
+    schema_version: schemaVersion,
+    run_id: runId,
+    source: readYaml(normalized).source,
+    source_tasks: [{ task_id: taskId }],
+    test_obligations: [],
+  };
+  if (decisionVectors) handoff.decision_vectors = [];
+  writeYaml(path.join(runDir, 'tdd-handoff.yaml'), handoff);
+  return { runDir, handoffFile: path.join(runDir, 'tdd-handoff.yaml') };
+}
+
+export function handoffProject(options, items = defaultItems) {
+  const project = workItemProject(items.map((item) => ({ ...item })));
+  return { project, ...writeRun(project, 't-w01-aaaa', options) };
+}
+
 // --- fixtures ---------------------------------------------------------------
