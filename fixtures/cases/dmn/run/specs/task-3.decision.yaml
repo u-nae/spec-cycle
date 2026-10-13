@@ -1,18 +1,18 @@
 schema_version: "1.0"
 task_id: "3"
 decision_id: membership-discount
-execution_format: review-only
+execution_format: table-v1
 hit_policy: UNIQUE
 ordered_rules: false
 inputs:
   - name: membership_tier
     type: string
     allowed_values: [GOLD, SILVER, NONE]
-    blank_means: missing
+    blank_means: any
   - name: order_subtotal
-    type: integer
-    allowed_values: [non-negative]
-    blank_means: missing
+    type: string
+    allowed_values: ["< 100000", ">= 100000"]
+    blank_means: any
 outputs:
   - name: discount_percent
     type: integer

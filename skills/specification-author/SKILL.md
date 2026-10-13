@@ -57,7 +57,10 @@ documents, decision records, and work-item list, and derives the run directory.
 4. Copy the work item's `acceptance_refs` into the task unchanged. Give every acceptance reference at least
    one obligation that lists it in `acceptance_refs`, and tag the proving scenario with `@<acceptance-id>`.
 5. Generate `.feature` files only for GHERKIN/BOTH tasks, under `<run-dir>/specs/revision-0/`.
-6. Generate review-only `.decision.yaml` files for DMN/BOTH unless a real engine and version are confirmed.
+6. Generate `table-v1` `.decision.yaml` files for DMN/BOTH, run `decision-vectors --table <table> --out <table basename>.vectors.yaml`,
+   list the vectors file in `spec_files`, and write one `decision-rule` obligation per rule
+   (`source: <table path>#<rule_id>`, `DEFAULT` included). Use `review-only` only when `table-v1` cannot express
+   the table, and state the reason in `assumptions`.
 7. Keep decision vocabulary identical across BOTH artifacts and identical to the baseline's terms.
 8. Separate reversible assumptions from policy ambiguities.
 9. For each policy ambiguity, decide what you would do and why, then ask instead of deciding:

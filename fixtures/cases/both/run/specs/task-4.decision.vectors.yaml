@@ -1,0 +1,32 @@
+schema_version: "1.0"
+decision_id: payment_approval
+table: run/specs/task-4.decision.yaml
+table_fingerprint: ce82d2b7d8b5a219721b0a359e973c67045f1f555a4d6168abc82863113d7c0b
+cells_total: 3
+rules:
+  - rule_id: R1
+    obligation_id: 4-payment_approval-R1
+    wins:
+      - inputs:
+          amount: 0..100
+        expected:
+          decision: AUTO_APPROVE
+    shadowed: []
+  - rule_id: R2
+    obligation_id: 4-payment_approval-R2
+    wins:
+      - inputs:
+          amount: "> 100 and <= 1000"
+        expected:
+          decision: MANAGER_REVIEW
+    shadowed: []
+  - rule_id: R3
+    obligation_id: 4-payment_approval-R3
+    wins:
+      - inputs:
+          amount: "> 1000"
+        expected:
+          decision: REJECT
+    shadowed: []
+gaps: []
+overlaps: []

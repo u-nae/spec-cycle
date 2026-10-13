@@ -39,6 +39,10 @@ the work; where the two differ, the policy wins.
 
    If validation fails, report the errors and stop. Do not review an invalid manifest.
 
+   For each `table-v1` decision table also run
+   `node <PLUGIN_ROOT>/scripts/spec-cycle.mjs check-decision --table <TABLE>` and base completeness findings
+   on its gaps, overlaps, and per-rule cells.
+
 2. Read the baseline sections and decision records named in each task's `source_refs`, the baseline
    invariants the task touches, the normalized tasks, the manifest, every referenced specification file,
    and the decision log. Read the documents listed in `source.baseline` — not documents you would have

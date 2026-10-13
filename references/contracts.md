@@ -1,6 +1,6 @@
 # Versioned artifact contracts
 
-Read this file before creating or reviewing artifacts. Use schema version `1.0` and repository-relative paths.
+Read this file before creating or reviewing artifacts. Use schema version `1.0` (TDD handoff: `1.1`) and repository-relative paths.
 `scripts/spec-cycle.mjs` enforces every rule marked "validator" below; the rest are author and critic duties.
 
 ## Project config — `.spec-cycle/config.yaml`
@@ -187,10 +187,80 @@ summary:
 Each finding contains `finding_id`, `task_id`, `severity`, `category`, `evidence`, `explanation`,
 `requested_change`, and `requires_human`.
 
-## TDD handoff
+## Decision table — `execution_format: table-v1`
+
+`<task-id>.decision.yaml` is machine-evaluated by `lib/decision.mjs`. `review-only` tables stay valid.
 
 ```yaml
 schema_version: "1.0"
+task_id: W06
+decision_id: bookmark_failure_cause
+execution_format: table-v1      # or review-only
+hit_policy: FIRST               # UNIQUE | FIRST | ANY (PRIORITY, COLLECT are rejected)
+ordered_rules: true             # true for FIRST; false for UNIQUE and ANY
+inputs:
+  - name: volume_state
+    type: string
+    allowed_values: [mounted, unmounted, unknown]
+    blank_means: any            # any | missing
+outputs:
+  - name: cause
+    type: string
+    allowed_values: [volume_unavailable, missing, access_denied, check_failed]
+rules:
+  - rule_id: R1
+    when: {volume_state: unmounted}   # cell: literal | [literals] | any | omitted (per blank_means)
+    then: {cause: volume_unavailable}
+default_rule: null              # or { then: {...} }; its cells are rule DEFAULT
+gap_analysis: []                # annotations on the computed result; may be empty
+overlap_analysis: []            # FIRST: must be non-empty when overlaps are computed (state the intent)
+source_locators: [...]
+```
+
+Numeric inputs declare interval labels as `allowed_values` (`["< 100000", ">= 100000"]`) and use the same
+labels in cells; the evaluator treats labels as an enum. Whether the intervals tile the number line is a
+critic dimension, not a computed one. The cell count may not exceed 10,000.
+
+## Decision vectors — `<task-id>.decision.vectors.yaml`
+
+Generated beside the table by `decision-vectors`; list it in the task's `spec_files` so it joins the review
+fingerprint.
+
+```yaml
+schema_version: "1.0"
+decision_id: bookmark_failure_cause
+table: <repository-relative table path>
+table_fingerprint: <sha256 of the table file>   # validate-author rejects a mismatch as stale
+cells_total: 9
+rules:
+  - rule_id: R1
+    obligation_id: W06-bookmark_failure_cause-R1  # <task>-<decision_id>-<rule_id>
+    wins:                       # cells whose final output this rule decides
+      - inputs: {volume_state: unmounted}
+        expected: {cause: volume_unavailable}
+    shadowed: []                # FIRST: matched cells lost to an earlier rule (informational)
+gaps: []                        # must be empty unless default_rule covers them
+overlaps: []                    # UNIQUE: must be empty
+```
+
+## Per-rule obligations
+
+A task with a table-v1 table needs one obligation per evaluated rule, including `DEFAULT` when
+`default_rule` is present. `review-only` tables keep one table-level obligation.
+
+```yaml
+test_obligations:
+  - obligation_id: W06-bookmark_failure_cause-R1
+    task_id: W06
+    kind: decision-rule
+    description: <one line>
+    source: <table path>#R1     # exactly <path as listed in spec_files>#<rule_id>
+```
+
+## TDD handoff
+
+```yaml
+schema_version: "1.1"
 run_id: <same-run-id>
 verdict: READY
 source: <manifest source block>
@@ -203,6 +273,9 @@ accepted_specifications: []
 test_obligations: []
 acceptance_coverage:            # acceptance id -> obligation ids that prove it
   A04: [W05-rename-records-revision]
+decision_vectors:               # one entry per table-v1 vectors file; [] when none
+  - decision_id: bookmark_failure_cause
+    rules: []                   # copied from the vectors artifact
 decision_log: .spec-cycle/runs/<run-id>/decision-log.yaml
 critic_report: .spec-cycle/runs/<run-id>/critic-pass-1.yaml
 non_blocking_notes: []

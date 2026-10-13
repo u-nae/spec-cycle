@@ -35,6 +35,7 @@ tasks:
     spec_files:
       - run/specs/task-4.feature
       - run/specs/task-4.decision.yaml
+      - run/specs/task-4.decision.vectors.yaml
     test_obligations:
       - obligation_id: T4-flow
         task_id: "4"
@@ -43,11 +44,25 @@ tasks:
         source: run/specs/task-4.feature#transition-a-submitted-payment-from-its-approval-decision
         acceptance_refs:
           - AC-PAY-1
-      - obligation_id: T4-policy
+      - obligation_id: T4-payment_approval-R1
         task_id: "4"
         kind: decision-rule
-        description: Cover every payment_approval amount range and exact boundary.
-        source: run/specs/task-4.decision.yaml#rules
+        description: Amounts from 0 to 100 are auto-approved.
+        source: run/specs/task-4.decision.yaml#R1
+        acceptance_refs:
+          - AC-PAY-2
+      - obligation_id: T4-payment_approval-R2
+        task_id: "4"
+        kind: decision-rule
+        description: Amounts above 100 up to 1000 go to manager review.
+        source: run/specs/task-4.decision.yaml#R2
+        acceptance_refs:
+          - AC-PAY-2
+      - obligation_id: T4-payment_approval-R3
+        task_id: "4"
+        kind: decision-rule
+        description: Amounts above 1000 are rejected.
+        source: run/specs/task-4.decision.yaml#R3
         acceptance_refs:
           - AC-PAY-2
     questions: []

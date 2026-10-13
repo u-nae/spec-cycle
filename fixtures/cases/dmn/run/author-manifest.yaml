@@ -31,16 +31,32 @@ tasks:
     assumptions: []
     spec_files:
       - run/specs/task-3.decision.yaml
+      - run/specs/task-3.decision.vectors.yaml
     test_obligations:
-      - obligation_id: T3-rule-coverage
+      - obligation_id: T3-membership-discount-R1
         task_id: "3"
         kind: decision-rule
-        description: Exercise each membership-discount rule and both subtotal boundary sides.
-        source: run/specs/task-3.decision.yaml#rules
-      - obligation_id: T3-table-integrity
+        description: GOLD with subtotal at or above 100000 gets 20 percent.
+        source: run/specs/task-3.decision.yaml#R1
+      - obligation_id: T3-membership-discount-R2
         task_id: "3"
-        kind: decision-coverage
-        description: Verify the UNIQUE table has no gap or overlap for valid inputs.
-        source: run/specs/task-3.decision.yaml#gap_analysis
+        kind: decision-rule
+        description: GOLD with subtotal below 100000 gets 10 percent.
+        source: run/specs/task-3.decision.yaml#R2
+      - obligation_id: T3-membership-discount-R3
+        task_id: "3"
+        kind: decision-rule
+        description: SILVER with subtotal at or above 100000 gets 10 percent.
+        source: run/specs/task-3.decision.yaml#R3
+      - obligation_id: T3-membership-discount-R4
+        task_id: "3"
+        kind: decision-rule
+        description: SILVER with subtotal below 100000 gets 0 percent.
+        source: run/specs/task-3.decision.yaml#R4
+      - obligation_id: T3-membership-discount-R5
+        task_id: "3"
+        kind: decision-rule
+        description: NONE gets 0 percent at any subtotal.
+        source: run/specs/task-3.decision.yaml#R5
     questions: []
     author_status: READY_FOR_CRITIC

@@ -16,6 +16,7 @@ generated specifications, and persisted human decisions. Do not accept the autho
 - missing normal, failure, boundary, permission, time, retry, cancellation, or persistence-failure cases;
 - observable and testable Given/When/Then steps;
 - decision input domain, output, hit policy, default, gap, and overlap;
+- Decision tables: run `check-decision` and cite its output; do not accept `gap_analysis` prose as evidence of completeness.
 - vocabulary mismatch between Gherkin and a decision table, and between specifications and the baseline's terms;
 - invented business policy;
 - excess coupling to implementation details;

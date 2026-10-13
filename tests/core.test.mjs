@@ -245,7 +245,7 @@ test('BOTH author validation rejects vocabulary drift', () => {
 test('author validation rejects an acceptance criterion that no obligation covers', () => {
   const project = temporaryFixture('both');
   editYaml(path.join(project, 'run', 'author-manifest.yaml'), (manifest) => {
-    delete manifest.tasks[0].test_obligations[1].acceptance_refs;
+    for (const obligation of manifest.tasks[0].test_obligations.slice(1)) delete obligation.acceptance_refs;
   });
   const result = run(['validate-author', '--manifest', 'run/author-manifest.yaml'], project);
   assert.notEqual(result.status, 0);
@@ -437,7 +437,7 @@ test('READY verdict creates a handoff with acceptance coverage and refuses a col
   const handoff = readYaml(path.join(project, 'run', 'tdd-handoff.yaml'));
   assert.equal(handoff.verdict, 'READY');
   assert.deepEqual(handoff.source_tasks, [{ task_id: '4', title: 'Process payment through approval policy', route: 'BOTH', acceptance_refs: ['AC-PAY-1', 'AC-PAY-2'] }]);
-  assert.deepEqual(handoff.acceptance_coverage, { 'AC-PAY-1': ['T4-flow'], 'AC-PAY-2': ['T4-policy'] });
+  assert.deepEqual(handoff.acceptance_coverage, { 'AC-PAY-1': ['T4-flow'], 'AC-PAY-2': ['T4-payment_approval-R1', 'T4-payment_approval-R2', 'T4-payment_approval-R3'] });
   assert.equal(handoff.source.work_items_artifact, 'input/work-items.yaml');
   const second = run(args, project);
   assert.notEqual(second.status, 0);
@@ -468,4 +468,72 @@ test('missing bundled node_modules produce a clear message and exit code 1', () 
     result.stderr.trim(),
     'spec-cycle: bundled node_modules are missing from this plugin install; reinstall the plugin or run npm install in the plugin directory',
   );
+});
+
+// --- table-v1 integration ----------------------------------------------------
+
+const validateAuthor = (project) => run(['validate-author', '--manifest', 'run/author-manifest.yaml'], project);
+
+test('author validation runs the evaluator on a table-v1 decision table', () => {
+  const project = temporaryFixture('dmn');
+  assert.equal(validateAuthor(project).status, 0);
+  editYaml(path.join(project, 'run', 'specs', 'task-3.decision.yaml'), (table) => {
+    table.rules = table.rules.filter((rule) => rule.rule_id !== 'R4');
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /gap:/);
+});
+
+test('author validation rejects a stale vectors file', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'specs', 'task-3.decision.yaml'), (table) => {
+    table.rules[0].then.discount_percent = 10;
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /vectors file is stale/);
+});
+
+test('author validation requires one decision-rule obligation per table-v1 rule', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'author-manifest.yaml'), (manifest) => {
+    manifest.tasks[0].test_obligations = manifest.tasks[0].test_obligations.filter((item) => item.obligation_id !== 'T3-membership-discount-R4');
+  });
+  const result = validateAuthor(project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /rule R4 of membership-discount has no decision-rule obligation/);
+});
+
+test('a review-only table still validates with a single table-level obligation', () => {
+  const project = temporaryFixture('dmn');
+  editYaml(path.join(project, 'run', 'specs', 'task-3.decision.yaml'), (table) => {
+    table.execution_format = 'review-only';
+  });
+  fs.rmSync(path.join(project, 'run', 'specs', 'task-3.decision.vectors.yaml'));
+  editYaml(path.join(project, 'run', 'author-manifest.yaml'), (manifest) => {
+    const task = manifest.tasks[0];
+    task.spec_files = task.spec_files.filter((file) => !file.endsWith('.vectors.yaml'));
+    task.test_obligations = [{
+      obligation_id: 'T3-rule-coverage',
+      task_id: '3',
+      kind: 'decision-rule',
+      description: 'Exercise each membership-discount rule.',
+      source: 'run/specs/task-3.decision.yaml#rules',
+    }];
+  });
+  const result = validateAuthor(project);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('READY handoff carries decision vectors for table-v1 tables', () => {
+  const project = temporaryFixture('dmn');
+  refreshFingerprint(project);
+  const result = run(['build-handoff', '--manifest', 'run/author-manifest.yaml', '--report', 'run/critic-pass-1.yaml', '--out', 'run/tdd-handoff.yaml'], project);
+  assert.equal(result.status, 0, result.stderr);
+  const handoff = readYaml(path.join(project, 'run', 'tdd-handoff.yaml'));
+  const table = readYaml(path.join(project, 'run', 'specs', 'task-3.decision.yaml'));
+  assert.equal(handoff.schema_version, '1.1');
+  assert.equal(handoff.decision_vectors[0].decision_id, 'membership-discount');
+  assert.equal(handoff.decision_vectors[0].rules.length, table.rules.length);
 });

@@ -28,20 +28,21 @@ Use priority and dependencies only as risk signals. Cite source evidence in ever
 
 ## Decision table
 
-When no engine is confirmed, write `<task-id>.decision.yaml` with:
+Write `<task-id>.decision.yaml` as `execution_format: table-v1` by default; the evaluator computes gaps,
+overlaps, and per-rule winning cells.
 
 ```yaml
 schema_version: "1.0"
 task_id: W07
 decision_id: example_decision
-execution_format: review-only
-hit_policy: UNIQUE
-ordered_rules: false
+execution_format: table-v1
+hit_policy: UNIQUE              # UNIQUE | FIRST | ANY
+ordered_rules: false            # true only for FIRST
 inputs:
   - name: input_name
     type: string
     allowed_values: [A, B]
-    blank_means: any
+    blank_means: any            # any | missing
 outputs:
   - name: result
     type: string
@@ -58,8 +59,17 @@ overlap_analysis: []
 source_locators: []
 ```
 
-State whether a blank cell means `any` or `missing`; do not leave the meaning implicit. Use an
-executable `.dmn` artifact only after confirming an engine and version.
+- Cell grammar: a literal, a list of literals, `any`, or omitted. An omitted cell follows `blank_means`
+  (`any` = whole domain, `missing` = only the missing value). State the meaning; never leave it implicit.
+- Numeric inputs: declare interval labels as `allowed_values` (`["< 100000", ">= 100000"]`) and use the
+  same labels in cells. The evaluator treats them as an enum, so confirm the intervals partition the range.
+- After writing the table run `check-decision --table <file>`, then
+  `decision-vectors --table <file> --out <task-id>.decision.vectors.yaml`, and list the vectors file in
+  `spec_files`.
+- Create one `decision-rule` obligation per rule (including `DEFAULT`).
+- `review-only` is the documented exception for PRIORITY or COLLECT policies or tables the evaluator cannot
+  express; record the reason in the task's `assumptions`. Use an executable `.dmn` artifact only after
+  confirming an engine and version.
 
 ## Assumptions versus questions
 

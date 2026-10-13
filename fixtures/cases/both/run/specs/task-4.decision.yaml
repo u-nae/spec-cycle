@@ -1,14 +1,14 @@
 schema_version: "1.0"
 task_id: "4"
 decision_id: payment_approval
-execution_format: review-only
+execution_format: table-v1
 hit_policy: UNIQUE
 ordered_rules: false
 inputs:
   - name: amount
-    type: number
-    allowed_values: [non-negative]
-    blank_means: missing
+    type: string
+    allowed_values: ["0..100", "> 100 and <= 1000", "> 1000"]
+    blank_means: any
 outputs:
   - name: decision
     type: string

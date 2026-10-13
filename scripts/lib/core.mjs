@@ -8,6 +8,7 @@ import {
   ValidationError, parseArgs, required, optional, readYaml, writeYaml, sha256File, isBlank, asArray, isObject,
   portablePath, assertPortable,
 } from './util.mjs';
+import { evaluateTable } from './decision.mjs';
 import { loadConfig, initCommand, DEFAULT_CONFIG, DEFAULT_RUN_ROOT } from './config.mjs';
 
 const ROUTES = new Set(['PASS', 'GHERKIN', 'DMN', 'BOTH']);
@@ -309,7 +310,7 @@ async function parseGherkin(file) {
   return parser.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function validateDecision(file, expectedTaskId) {
+function validateDecision(file, expectedTaskId, context = null) {
   const errors = [];
   let decision;
   try {
@@ -319,7 +320,8 @@ function validateDecision(file, expectedTaskId) {
   }
   if (decision?.schema_version !== '1.0') errors.push(`${file}: schema_version must be 1.0`);
   if (String(decision?.task_id) !== String(expectedTaskId)) errors.push(`${file}: task_id must match ${expectedTaskId}`);
-  if (decision?.execution_format !== 'review-only') errors.push(`${file}: execution_format must be review-only without a confirmed engine`);
+  const tableV1 = decision?.execution_format === 'table-v1';
+  if (decision?.execution_format !== 'review-only' && !tableV1) errors.push(`${file}: execution_format must be review-only or table-v1`);
   if (typeof decision?.decision_id !== 'string' || !decision.decision_id) errors.push(`${file}: decision_id is required`);
   if (typeof decision?.hit_policy !== 'string' || !decision.hit_policy) errors.push(`${file}: hit_policy is required`);
   if (typeof decision?.ordered_rules !== 'boolean') errors.push(`${file}: ordered_rules must be boolean`);
@@ -354,6 +356,29 @@ function validateDecision(file, expectedTaskId) {
   if (!Array.isArray(decision?.gap_analysis)) errors.push(`${file}: gap_analysis must be an array`);
   if (!Array.isArray(decision?.overlap_analysis)) errors.push(`${file}: overlap_analysis must be an array`);
   if (!Array.isArray(decision?.source_locators) || decision.source_locators.length === 0) errors.push(`${file}: source_locators must be non-empty`);
+  if (tableV1) {
+    for (const error of evaluateTable(decision).errors) errors.push(`${file}: ${error}`);
+    if (context) {
+      const relative = path.relative(context.projectRoot, file).split(path.sep).join('/');
+      const vectorsPath = relative.replace(/\.yaml$/, '.vectors.yaml');
+      if (!asArray(context.specFiles).includes(vectorsPath)) {
+        errors.push(`${file}: table-v1 requires its vectors file ${vectorsPath} in spec_files`);
+      } else {
+        const vectorsFile = resolveArtifact(context.projectRoot, vectorsPath);
+        if (fs.existsSync(vectorsFile)) {
+          let vectors = null;
+          try {
+            vectors = readYaml(vectorsFile);
+          } catch (error) {
+            errors.push(`${vectorsFile}: invalid YAML: ${error.message}`);
+          }
+          if (vectors && vectors.table_fingerprint !== sha256File(file)) {
+            errors.push(`${vectorsFile}: vectors file is stale: regenerate with decision-vectors`);
+          }
+        }
+      }
+    }
+  }
   return errors;
 }
 
@@ -487,8 +512,8 @@ async function validateAuthorFile(manifestFile) {
     const extensions = new Set(specFiles.map((file) => path.extname(file)));
     if (task?.route === 'PASS' && specFiles.length > 0) errors.push(`${label}: PASS must not create formal specification files`);
     if (task?.route === 'GHERKIN' && !extensions.has('.feature')) errors.push(`${label}: GHERKIN requires a .feature file`);
-    if (task?.route === 'DMN' && !specFiles.some((file) => file.endsWith('.decision.yaml'))) errors.push(`${label}: DMN requires a .decision.yaml file`);
-    if (task?.route === 'BOTH' && (!extensions.has('.feature') || !specFiles.some((file) => file.endsWith('.decision.yaml')))) {
+    if (task?.route === 'DMN' && !specFiles.some((file) => file.endsWith('.decision.yaml') && !file.endsWith('.vectors.yaml'))) errors.push(`${label}: DMN requires a .decision.yaml file`);
+    if (task?.route === 'BOTH' && (!extensions.has('.feature') || !specFiles.some((file) => file.endsWith('.decision.yaml') && !file.endsWith('.vectors.yaml')))) {
       errors.push(`${label}: BOTH requires .feature and .decision.yaml files`);
     }
     for (const [questionIndex, question] of asArray(task?.questions).entries()) {
@@ -533,11 +558,26 @@ async function validateAuthorFile(manifestFile) {
           errors.push(`${label}: invalid Gherkin ${specPath}: ${error.message}`);
         }
       }
-      if (specPath.endsWith('.decision.yaml')) errors.push(...validateDecision(fullPath, taskId));
+      if (specPath.endsWith('.decision.yaml') && !specPath.endsWith('.vectors.yaml')) {
+        errors.push(...validateDecision(fullPath, taskId, { projectRoot, specFiles }));
+        let decision = null;
+        try {
+          decision = readYaml(fullPath);
+        } catch {
+          decision = null;
+        }
+        if (decision?.execution_format === 'table-v1') {
+          for (const rule of evaluateTable(decision).rules ?? []) {
+            const wanted = `${specPath}#${rule.rule_id}`;
+            const found = obligations.some((obligation) => obligation?.kind === 'decision-rule' && obligation?.source === wanted);
+            if (!found) errors.push(`${label}: rule ${rule.rule_id} of ${decision.decision_id} has no decision-rule obligation`);
+          }
+        }
+      }
     }
     if (task?.route === 'BOTH') {
       const featurePath = specFiles.find((file) => file.endsWith('.feature'));
-      const decisionPath = specFiles.find((file) => file.endsWith('.decision.yaml'));
+      const decisionPath = specFiles.find((file) => file.endsWith('.decision.yaml') && !file.endsWith('.vectors.yaml'));
       if (featurePath && decisionPath) {
         const featureSource = fs.existsSync(resolveArtifact(projectRoot, featurePath))
           ? fs.readFileSync(resolveArtifact(projectRoot, featurePath), 'utf8')
@@ -676,8 +716,16 @@ async function buildHandoff(args) {
       (acceptanceCoverage[ref] ??= []).push(obligation.obligation_id);
     }
   }
+  const decisionVectors = [];
+  for (const task of manifest.tasks) {
+    for (const specPath of asArray(task.spec_files)) {
+      if (!specPath.endsWith('.vectors.yaml')) continue;
+      const vectors = readYaml(resolveArtifact(projectRoot, specPath));
+      decisionVectors.push({ decision_id: vectors.decision_id, rules: vectors.rules });
+    }
+  }
   const handoff = {
-    schema_version: '1.0',
+    schema_version: '1.1',
     run_id: manifest.run_id,
     verdict: 'READY',
     source: manifest.source,
@@ -694,6 +742,7 @@ async function buildHandoff(args) {
     }))),
     test_obligations: obligations,
     acceptance_coverage: acceptanceCoverage,
+    decision_vectors: decisionVectors,
     decision_log: decisionLog ? relativeFromProject(projectRoot, decisionLog) : null,
     critic_report: relativeFromProject(projectRoot, reportFile),
     non_blocking_notes: report.findings
