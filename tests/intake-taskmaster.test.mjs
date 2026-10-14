@@ -167,3 +167,117 @@ test('subtask dependencies stay parent-relative unless dotted, and the normalize
   const sub = tasks.find((task) => task.task_id === 'T6.2');
   assert.deepEqual(sub.dependencies, ['T6.1', 'T5.2']);
 });
+
+// A hand-written file that a previous import enriched: folded text wrapped at the author's width, flow lists
+// without padding, a comment, and a native item. Re-import must leave untouched items byte-identical.
+function handWrittenImport() {
+  const tasksJson = { tasks: [
+    { id: 1, title: 'Base', description: 'd1', details: 'one two three four', testStrategy: 'unit', priority: 'high', status: 'done' },
+    { id: 2, title: 'Snapshot', description: 'd2', details: 'five six', testStrategy: 'unit', priority: 'medium', status: 'pending', dependencies: [1] },
+  ] };
+  const { dir, tasks, items } = project(tasksJson);
+  fs.writeFileSync(items, [
+    '# work items',
+    'schema_version: "1.0"',
+    'items:',
+    '  - id: T1',
+    '    title: Base',
+    '    description: d1',
+    '    details: >-',
+    '      one two',
+    '      three four',
+    '    test_strategy: unit',
+    '    priority: high',
+    '    dependencies: []',
+    '    status: done   # finished',
+    '    source_refs: [docs/PRD.md#F01]',
+    '    acceptance_refs: [A18]',
+    '    external_ref: taskmaster:master:1',
+    '  # second',
+    '  - id: T2',
+    '    title: Snapshot',
+    '    description: d2',
+    '    details: >-',
+    '      five',
+    '      six',
+    '    test_strategy: unit',
+    '    priority: medium',
+    '    dependencies: [T1]',
+    '    status: pending',
+    '    source_refs: []',
+    '    acceptance_refs: [A01, A02]',
+    '    external_ref: taskmaster:master:2',
+    '  - id: W9',
+    '    title: native',
+    '    status: pending',
+    '# tail',
+    '',
+  ].join('\n'));
+  return { dir, tasks, items, tasksJson };
+}
+
+test('re-import of unchanged tasks leaves a hand-written work-items file byte-identical', () => {
+  const { dir, items } = handWrittenImport();
+  const before = fs.readFileSync(items, 'utf8');
+  const result = importTm(dir);
+  assert.equal(fs.readFileSync(items, 'utf8'), before);
+  assert.match(result.stdout, /updated:\n\s+- T1\n\s+- T2/);
+});
+
+test('re-import with one changed task rewrites only that item and keeps the others byte-identical', () => {
+  const { dir, tasks, items, tasksJson } = handWrittenImport();
+  const before = fs.readFileSync(items, 'utf8');
+  tasksJson.tasks[1].title = 'Snapshot v2';
+  fs.writeFileSync(tasks, JSON.stringify(tasksJson));
+  importTm(dir);
+  const after = fs.readFileSync(items, 'utf8');
+  const head = before.slice(0, before.indexOf('  - id: T2'));
+  const tail = before.slice(before.indexOf('  - id: W9'));
+  assert.ok(after.startsWith(head), 'T1 and everything before it must be unchanged');
+  assert.ok(after.endsWith(tail), 'the native item and trailing comment must be unchanged');
+  const [, t2] = readYaml(items).items;
+  assert.equal(t2.title, 'Snapshot v2');
+  assert.deepEqual(t2.acceptance_refs, ['A01', 'A02']);
+  assert.equal(t2.details, 'five six');
+  assert.equal(readYaml(items).items.length, 3);
+});
+
+test('re-import appends a new task after the existing items without touching them', () => {
+  const { dir, tasks, items, tasksJson } = handWrittenImport();
+  const before = fs.readFileSync(items, 'utf8');
+  tasksJson.tasks.push({ id: 3, title: 'Diff', status: 'pending' });
+  fs.writeFileSync(tasks, JSON.stringify(tasksJson));
+  importTm(dir);
+  const after = fs.readFileSync(items, 'utf8');
+  const body = before.slice(0, before.indexOf('# tail'));
+  assert.ok(after.startsWith(body), 'existing items must be unchanged');
+  assert.ok(after.endsWith('# tail\n'));
+  const parsed = readYaml(items).items;
+  assert.deepEqual(parsed.map((item) => item.id), ['T1', 'T2', 'W9', 'T3']);
+  assert.equal(parsed[3].external_ref, 'taskmaster:master:3');
+});
+
+test('re-import that defers a removed task rewrites only that item', () => {
+  const { dir, tasks, items, tasksJson } = handWrittenImport();
+  const before = fs.readFileSync(items, 'utf8');
+  tasksJson.tasks.pop();
+  fs.writeFileSync(tasks, JSON.stringify(tasksJson));
+  importTm(dir);
+  const after = fs.readFileSync(items, 'utf8');
+  assert.ok(after.startsWith(before.slice(0, before.indexOf('  - id: T2'))));
+  assert.ok(after.endsWith(before.slice(before.indexOf('  - id: W9'))));
+  assert.equal(readYaml(items).items[1].status, 'deferred');
+});
+
+test('re-import adding a subtask to an existing task rewrites only that task', () => {
+  const { dir, tasks, items, tasksJson } = handWrittenImport();
+  const before = fs.readFileSync(items, 'utf8');
+  tasksJson.tasks[0].subtasks = [{ id: 1, title: 'Sub', status: 'pending' }];
+  fs.writeFileSync(tasks, JSON.stringify(tasksJson));
+  importTm(dir);
+  const after = fs.readFileSync(items, 'utf8');
+  assert.ok(after.endsWith(before.slice(before.indexOf('  # second'))), 'T2 and later must be unchanged');
+  const [t1] = readYaml(items).items;
+  assert.equal(t1.subtasks[0].external_ref, 'taskmaster:master:1.1');
+  assert.deepEqual(t1.source_refs, ['docs/PRD.md#F01']);
+});

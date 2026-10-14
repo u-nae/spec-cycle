@@ -44,6 +44,9 @@ work-item list, invalidates every run authored against the previous content (val
 
 `set-status` (and `verify-obligations --mark-done`) change only the `status` text of the item, or insert one
 `status:` line under its `id`; the rest of the file stays byte-identical (folded text, flow lists, comments).
+`import-taskmaster` likewise rewrites only the top-level items it changed (fields, new subtasks, deferral)
+and appends new items after the last one; unchanged items keep their text. When the existing layout gives no
+safe place to splice, it re-serializes the whole file and reports a warning.
 
 The agent derives work items from the baseline. A work item is the unit that passes the gate and then
 enters one TDD cycle.
