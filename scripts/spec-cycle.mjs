@@ -47,7 +47,7 @@ function usage() {
   spec-cycle.mjs import-taskmaster [--tasks <file>] [--tag <name>] [--work-items <file>] [--config <file>]
   spec-cycle.mjs set-status --task <id> --status <status> [--config <file>]
   spec-cycle.mjs resolve-handoff --task <id> [--config <file>] [--project <dir>]
-  spec-cycle.mjs verify-obligations --task <id> [--out <file>] [--mark-done] [--config <file>]
+  spec-cycle.mjs verify-obligations --task <id> [--out <file>] [--test-command <cmd> --test-exit-code <n>] [--human-confirmed <true|false>] [--mark-done] [--config <file>]
   spec-cycle.mjs status [--config <file>]
   spec-cycle.mjs normalize --out <file> [--config <file>] [--task <id>]
   spec-cycle.mjs fingerprint (--file <file>|--manifest <author-manifest>)

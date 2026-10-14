@@ -338,7 +338,8 @@ Exit code 1 when `missing` is non-empty, and when the handoff has no test obliga
 
 ## Verification report — `<run_dir>/verification.yaml`
 
-Written by `verify-obligations --task <id> [--mark-done]` on every run, replacing the previous report.
+Written by `verify-obligations --task <id> [--test-command <cmd> --test-exit-code <n>] [--human-confirmed <true|false>] [--mark-done]`
+on every run, replacing the previous report.
 
 ```yaml
 schema_version: "1.0"
@@ -354,16 +355,17 @@ obligations:
     covered: false
     locations: []
 uncovered_count: 1
-test_command: null        # the script writes null; the verify command fills { command: "...", exit_code: N }
-status_written: null      # done only when --mark-done ran with uncovered_count 0
-human_confirmed_tests: true   # optional; added by the verify command after the last script run
+test_command:             # from --test-command/--test-exit-code, or null
+  command: scripts/vm-verify.sh
+  exit_code: 0
+human_confirmed_tests: null   # from --human-confirmed true|false, or null
+status_written: null      # done only when --mark-done ran with uncovered_count 0 and tests passed or confirmed
 ```
 
 Coverage is an existence check: an obligation is covered when its id (or `verification.id_pattern` with the
 id substituted) appears in a file matched by `verification.test_globs`. `--mark-done` writes `done` to the
-work-item list only when `uncovered_count` is 0 (validator). `human_confirmed_tests` and a non-null
-`test_command` are the only keys the verify command edits by hand, and only after its last
-`verify-obligations` run, because every run rewrites the file.
+work-item list only when `uncovered_count` is 0 and the tests passed (`exit_code` 0) or a human confirmed them
+(validator). Nothing in the report is edited by hand; the test evidence travels as flags.
 
 ## Invariants
 
