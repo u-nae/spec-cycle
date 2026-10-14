@@ -37,9 +37,35 @@ function setStatus({ workItemsFile, taskId, status }) {
   if (!(ALLOWED_TRANSITIONS[from] ?? []).includes(status)) {
     throw new ValidationError([`${taskId}: status transition ${from} -> ${status} is not allowed`]);
   }
-  node.set('status', status);
-  fs.writeFileSync(workItemsFile, doc.toString({ lineWidth: 0 }));
+  const next = editStatusText(text, doc, node, status);
+  // The edit is textual; read it back so a file the splice cannot handle is never written half-changed.
+  const check = findItemNode(YAML.parseDocument(next), taskId);
+  if (!check || String(check.get('status')) !== status) {
+    throw new ValidationError([`${taskId}: could not update the status line without rewriting the file`]);
+  }
+  fs.writeFileSync(workItemsFile, next);
   return { task_id: taskId, from, to: status };
+}
+
+/// Change only the status text so the rest of a hand-written file (folded text, flow lists, quotes,
+/// comments) stays byte-identical. Re-serializing the document would reflow every item.
+function editStatusText(text, doc, node, status) {
+  const current = node.get('status', true);
+  if (YAML.isScalar(current) && current.range) {
+    const [start, end] = current.range;
+    return text.slice(0, start) + status + text.slice(end);
+  }
+  const idPair = node.items.find((pair) => YAML.isScalar(pair.key) && pair.key.value === 'id');
+  if (node.flow || !idPair?.key?.range || !idPair.value?.range) {
+    // Flow-style items have no line of their own to insert into; fall back to re-serializing.
+    node.set('status', status);
+    return doc.toString({ lineWidth: 0 });
+  }
+  const keyStart = idPair.key.range[0];
+  const column = keyStart - (text.lastIndexOf('\n', keyStart - 1) + 1);
+  const lineEnd = text.indexOf('\n', idPair.value.range[1]);
+  const at = lineEnd === -1 ? text.length : lineEnd;
+  return `${text.slice(0, at)}\n${' '.repeat(column)}status: ${status}${text.slice(at)}`;
 }
 
 function definitionalFields(item) {

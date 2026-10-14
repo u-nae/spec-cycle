@@ -42,6 +42,9 @@ work-item list, invalidates every run authored against the previous content (val
 
 ## Work-item list — `docs/work-items.yaml`
 
+`set-status` (and `verify-obligations --mark-done`) change only the `status` text of the item, or insert one
+`status:` line under its `id`; the rest of the file stays byte-identical (folded text, flow lists, comments).
+
 The agent derives work items from the baseline. A work item is the unit that passes the gate and then
 enters one TDD cycle.
 
@@ -97,6 +100,9 @@ tasks:
 ```
 
 ## Author manifest
+
+Quote any value that contains ` #`. YAML reads the rest of a plain value after ` #` as a comment, so
+`validate-author` rejects a plain value followed by a same-line comment (validator).
 
 ```yaml
 schema_version: "1.0"

@@ -114,3 +114,87 @@ test('set-status treats an item without a status key as pending', () => {
   assert.match(result.stdout, /from: pending/);
   assert.equal(readYaml(file).items[0].status, 'in-progress');
 });
+
+// A hand-written work-item file: folded scalars wrapped at the author's width, flow lists without padding,
+// a quoted scalar and a comment. set-status must change exactly the status text and nothing else.
+function handWrittenProject() {
+  const project = workItemProject([{ id: 'W01', title: 'placeholder' }]);
+  const file = path.join(project, 'docs', 'work-items.yaml');
+  fs.writeFileSync(file, [
+    'schema_version: "1.0"',
+    'items:',
+    '  - id: W01',
+    '    title: 앱 기반 만들기',
+    '    details: >-',
+    '      macOS App 템플릿, Swift 6 language mode, strict concurrency complete,',
+    '      외부 패키지 0개. 기능 코드는 넣지 않는다.',
+    '    status: done   # finished in September',
+    '    acceptance_refs: [A18]',
+    '    subtasks: []',
+    '  - id: W02',
+    '    title: "구성 스냅샷: 값 타입"',
+    '    test_strategy: >-',
+    '      Domain 단위 테스트로 Node 종류별 모양을',
+    '      결정표대로 확인한다.',
+    '    status: pending',
+    '    dependencies: [W01]',
+    '    acceptance_refs: [A01, A02]',
+    '    subtasks:',
+    '      - id: "1"',
+    '        title: 하위 항목',
+    '        details: >-',
+    '          둘째 줄로',
+    '          접힌 문장.',
+    '  - id: W03',
+    '    title: 상태가 없는 항목',
+    '    dependencies: [W02]',
+    '',
+  ].join('\n'));
+  return { project, file };
+}
+
+function changedLines(before, after) {
+  const a = before.split('\n');
+  const b = after.split('\n');
+  return { removed: a.filter((line, i) => line !== b[i]), lengths: [a.length, b.length] };
+}
+
+test('set-status changes only the status text of a hand-written file with folded text and flow lists', () => {
+  const { project, file } = handWrittenProject();
+  const before = fs.readFileSync(file, 'utf8');
+  const result = run(['set-status', '--task', 'W02', '--status', 'in-progress'], project);
+  assert.equal(result.status, 0, result.stderr);
+  const after = fs.readFileSync(file, 'utf8');
+  assert.equal(after, before.replace('    status: pending\n', '    status: in-progress\n'));
+  assert.equal(readYaml(file).items[1].status, 'in-progress');
+});
+
+test('set-status keeps a trailing comment on the status line', () => {
+  const { project, file } = handWrittenProject();
+  const before = fs.readFileSync(file, 'utf8');
+  // W01 is done; take W02 through to done so W01's commented line stays as it is.
+  assert.equal(run(['set-status', '--task', 'W02', '--status', 'done'], project).status, 0);
+  const after = fs.readFileSync(file, 'utf8');
+  assert.match(after, /    status: done   # finished in September\n/);
+  assert.equal(after, before.replace('    status: pending\n', '    status: done\n'));
+});
+
+test('set-status on a subtask of a hand-written file inserts one status line and changes nothing else', () => {
+  const { project, file } = handWrittenProject();
+  const before = fs.readFileSync(file, 'utf8');
+  const result = run(['set-status', '--task', 'W02.1', '--status', 'in-progress'], project);
+  assert.equal(result.status, 0, result.stderr);
+  const after = fs.readFileSync(file, 'utf8');
+  assert.equal(after, before.replace('      - id: "1"\n', '      - id: "1"\n        status: in-progress\n'));
+  assert.equal(readYaml(file).items[1].subtasks[0].status, 'in-progress');
+});
+
+test('set-status on a hand-written item without a status inserts one line under its id', () => {
+  const { project, file } = handWrittenProject();
+  const before = fs.readFileSync(file, 'utf8');
+  const result = run(['set-status', '--task', 'W03', '--status', 'in-progress'], project);
+  assert.equal(result.status, 0, result.stderr);
+  const after = fs.readFileSync(file, 'utf8');
+  assert.equal(after, before.replace('  - id: W03\n', '  - id: W03\n    status: in-progress\n'));
+  assert.equal(changedLines(before, after).lengths[1], changedLines(before, after).lengths[0] + 1);
+});

@@ -474,6 +474,23 @@ function sameSource(left, right) {
   return JSON.stringify(strip(left)) === JSON.stringify(strip(right));
 }
 
+/// A plain (unquoted) value followed on the same line by " #" loses everything after it: YAML reads the
+/// rest as a comment. Authors write prose such as "restored(from #2)" in descriptions, so report it
+/// instead of letting the cut text reach the handoff and the brief.
+function inlineCommentCuts(text) {
+  const lines = new YAML.LineCounter();
+  const doc = YAML.parseDocument(text, { lineCounter: lines });
+  const cuts = [];
+  YAML.visit(doc, {
+    Scalar(_, node) {
+      if (node.type !== 'PLAIN' || !node.comment || !node.range) return;
+      const { line } = lines.linePos(node.range[0]);
+      cuts.push(`line ${line}: the value "${node.source}" is cut by " #${node.comment}", which YAML reads as a comment; quote the value`);
+    },
+  });
+  return cuts;
+}
+
 async function validateAuthorFile(manifestFile) {
   const errors = [];
   let manifest;
@@ -482,6 +499,7 @@ async function validateAuthorFile(manifestFile) {
   } catch (error) {
     throw new ValidationError([`Invalid author YAML: ${error.message}`]);
   }
+  errors.push(...inlineCommentCuts(fs.readFileSync(manifestFile, 'utf8')).map((cut) => `${manifestFile}: ${cut}`));
   if (manifest?.schema_version !== '1.0') errors.push('schema_version must be 1.0');
   if (!manifest?.run_id) errors.push('run_id is required');
   if (!Number.isInteger(manifest?.revision_count) || manifest.revision_count < 0) errors.push('revision_count must be a non-negative integer');
