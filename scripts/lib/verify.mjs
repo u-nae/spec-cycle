@@ -19,7 +19,37 @@ function matcherFor(idPatternText, id) {
   return new RegExp(String(idPatternText).replaceAll('{id}', escapeRegExp(id)));
 }
 
-function verifyObligations({ projectRoot, configArg = null, taskId, outFile = null, markDone = false }) {
+/// The test evidence for a verification run: a command the agent ran with its exit code, or a human's
+/// confirmation. Either may be absent; --mark-done needs a passing run or a confirmation.
+function testEvidence({ testCommand = null, testExitCode = null, humanConfirmed = null }) {
+  if ((testCommand === null) !== (testExitCode === null)) {
+    throw new ValidationError(['--test-command and --test-exit-code go together']);
+  }
+  if (testExitCode !== null && !/^-?\d+$/.test(String(testExitCode))) {
+    throw new ValidationError(['--test-exit-code must be an integer']);
+  }
+  if (humanConfirmed !== null && !['true', 'false', true, false].includes(humanConfirmed)) {
+    throw new ValidationError(['--human-confirmed must be true or false']);
+  }
+  return {
+    test_command: testCommand === null ? null : { command: String(testCommand), exit_code: Number(testExitCode) },
+    human_confirmed_tests: humanConfirmed === null ? null : humanConfirmed === true || humanConfirmed === 'true',
+  };
+}
+
+function testsBlockDone(evidence) {
+  if (evidence.test_command && evidence.test_command.exit_code !== 0) {
+    return `tests failed (${evidence.test_command.command} exited with ${evidence.test_command.exit_code}); status unchanged`;
+  }
+  if (evidence.test_command?.exit_code === 0 || evidence.human_confirmed_tests === true) return null;
+  return 'tests are not confirmed; pass --test-command with --test-exit-code 0, or --human-confirmed true; status unchanged';
+}
+
+function verifyObligations({
+  projectRoot, configArg = null, taskId, outFile = null, markDone = false,
+  testCommand = null, testExitCode = null, humanConfirmed = null,
+}) {
+  const evidence = testEvidence({ testCommand, testExitCode, humanConfirmed });
   const resolution = resolveHandoff({ projectRoot, configArg, taskId });
   if (!resolution.usable) throw new ValidationError(resolution.errors);
   const config = loadConfig(projectRoot, configArg);
@@ -50,15 +80,20 @@ function verifyObligations({ projectRoot, configArg = null, taskId, outFile = nu
     test_globs: testGlobs,
     obligations,
     uncovered_count: uncovered.length,
-    test_command: null,
+    test_command: evidence.test_command,
+    human_confirmed_tests: evidence.human_confirmed_tests,
     status_written: null,
   };
   const target = outFile ? path.resolve(projectRoot, outFile) : path.join(projectRoot, resolution.run_dir, VERIFICATION_FILE);
   writeYaml(target, report);
 
   if (markDone) {
-    if (uncovered.length > 0) {
-      const error = new ValidationError([`${uncovered.length} obligation(s) uncovered; status unchanged`]);
+    const blockers = [
+      ...(uncovered.length > 0 ? [`${uncovered.length} obligation(s) uncovered; status unchanged`] : []),
+      ...[testsBlockDone(evidence)].filter(Boolean),
+    ];
+    if (blockers.length > 0) {
+      const error = new ValidationError(blockers);
       error.report = report;
       throw error;
     }
@@ -103,6 +138,9 @@ function verifyObligationsCommand(args) {
       taskId: required(args, 'task'),
       outFile: optional(args, 'out'),
       markDone: args['mark-done'] === true,
+      testCommand: optional(args, 'test-command'),
+      testExitCode: optional(args, 'test-exit-code'),
+      humanConfirmed: optional(args, 'human-confirmed'),
     });
   } catch (error) {
     if (!(error instanceof ValidationError) || !error.report) throw error;
@@ -113,7 +151,7 @@ function verifyObligationsCommand(args) {
   const errors = report.obligations
     .filter((obligation) => !obligation.covered)
     .map((obligation) => `obligation ${obligation.obligation_id} is not covered by any test`);
-  if (errors.length > 0) throw new ValidationError([...errors, ...blocked]);
+  if (errors.length > 0 || blocked.length > 0) throw new ValidationError([...errors, ...blocked]);
 }
 
 function statusCommand(args) {

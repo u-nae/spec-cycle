@@ -40,7 +40,7 @@ test('verify-obligations reports covered and uncovered obligations with location
     { obligation_id: 'W01-other', covered: false, locations: [] },
   ]);
   assert.deepEqual(Object.keys(report), [
-    'schema_version', 'run_id', 'task_id', 'checked_at', 'test_globs', 'obligations', 'uncovered_count', 'test_command', 'status_written',
+    'schema_version', 'run_id', 'task_id', 'checked_at', 'test_globs', 'obligations', 'uncovered_count', 'test_command', 'human_confirmed_tests', 'status_written',
   ]);
   assert.equal(report.uncovered_count, 1);
   assert.equal(report.run_id, 't-w01-aaaa');
@@ -105,13 +105,13 @@ test('verify-obligations --mark-done writes done only when nothing is uncovered'
   assert.equal(readYaml(path.join(runDir, 'verification.yaml')).status_written, null);
 
   writeTest(project, 'B.test.mjs', "test('W01-y', () => {});\n");
-  const passed = verify(project, ['--mark-done']);
+  const passed = verify(project, ['--mark-done', '--test-command', 'npm test', '--test-exit-code', '0']);
   assert.equal(passed.result.status, 0, passed.result.stderr);
   assert.equal(passed.report.status_written, 'done');
   assert.equal(readYaml(workItems).items.find((item) => item.id === 'W01').status, 'done');
   assert.equal(readYaml(path.join(runDir, 'verification.yaml')).status_written, 'done');
 
-  const again = verify(project, ['--mark-done']);
+  const again = verify(project, ['--mark-done', '--human-confirmed', 'true']);
   assert.equal(again.result.status, 0, again.result.stderr);
   assert.equal(again.report.status_written, 'done');
 });
@@ -172,4 +172,60 @@ test('status reports the newest run, not the run with the most critic passes', (
   assert.equal(later.latest_run, 't-w01-zzzz');
   assert.equal(later.verdict, 'BLOCKED_AT_LIMIT');
   assert.equal(later.handoff, false);
+});
+
+test('verify-obligations records the test run passed by flags in the report', () => {
+  const { project, runDir } = verifyProject(['W01-x']);
+  writeTest(project, 'A.test.mjs', "test('W01-x', () => {});\n");
+  const { result, report } = verify(project, ['--test-command', 'scripts/vm-verify.sh', '--test-exit-code', '0']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(report.test_command, { command: 'scripts/vm-verify.sh', exit_code: 0 });
+  assert.equal(report.human_confirmed_tests, null);
+  const saved = readYaml(path.join(runDir, 'verification.yaml'));
+  assert.deepEqual(saved.test_command, { command: 'scripts/vm-verify.sh', exit_code: 0 });
+  assert.deepEqual(Object.keys(saved).slice(-3), ['test_command', 'human_confirmed_tests', 'status_written']);
+});
+
+test('verify-obligations records a human test confirmation', () => {
+  const { project } = verifyProject(['W01-x']);
+  writeTest(project, 'A.test.mjs', "test('W01-x', () => {});\n");
+  const { result, report } = verify(project, ['--human-confirmed', 'false']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(report.human_confirmed_tests, false);
+  assert.equal(report.test_command, null);
+});
+
+test('verify-obligations --mark-done refuses without a passing test run or a human confirmation', () => {
+  const cases = [
+    { flags: [], message: /tests are not confirmed; pass --test-command with --test-exit-code 0, or --human-confirmed true; status unchanged/ },
+    { flags: ['--human-confirmed', 'false'], message: /tests are not confirmed; .*status unchanged/ },
+    { flags: ['--test-command', 'npm test', '--test-exit-code', '1'], message: /tests failed \(npm test exited with 1\); status unchanged/ },
+  ];
+  for (const { flags, message } of cases) {
+    const { project, runDir } = verifyProject(['W01-x']);
+    writeTest(project, 'A.test.mjs', "test('W01-x', () => {});\n");
+    const { result, report } = verify(project, ['--mark-done', ...flags]);
+    assert.equal(result.status, 1, flags.join(' '));
+    assert.match(result.stderr, message);
+    assert.equal(report.status_written, null);
+    assert.equal(readYaml(path.join(project, 'docs', 'work-items.yaml')).items.find((item) => item.id === 'W01').status, 'pending');
+    assert.equal(readYaml(path.join(runDir, 'verification.yaml')).status_written, null);
+  }
+});
+
+test('verify-obligations rejects malformed test flags before writing a report', () => {
+  const cases = [
+    { flags: ['--test-command', 'npm test'], message: /--test-command and --test-exit-code go together/ },
+    { flags: ['--test-exit-code', '0'], message: /--test-command and --test-exit-code go together/ },
+    { flags: ['--test-command', 'npm test', '--test-exit-code', 'zero'], message: /--test-exit-code must be an integer/ },
+    { flags: ['--human-confirmed', 'yes'], message: /--human-confirmed must be true or false/ },
+  ];
+  for (const { flags, message } of cases) {
+    const { project, runDir } = verifyProject(['W01-x']);
+    writeTest(project, 'A.test.mjs', "test('W01-x', () => {});\n");
+    const { result } = verify(project, flags);
+    assert.equal(result.status, 1, flags.join(' '));
+    assert.match(result.stderr, message);
+    assert.equal(fs.existsSync(path.join(runDir, 'verification.yaml')), false);
+  }
 });

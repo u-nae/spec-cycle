@@ -611,3 +611,28 @@ test('author validation rejects a vectors table path that differs from the spec_
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /table must be run\/specs\/task-3\.decision\.yaml/);
 });
+
+test('author validation rejects a plain value that an inline " #" cut short', () => {
+  const project = temporaryFixture('pass');
+  const manifest = path.join(project, 'run', 'author-manifest.yaml');
+  const text = fs.readFileSync(manifest, 'utf8');
+  fs.writeFileSync(manifest, text.replace(
+    'description: Verify the approved helper sentence is rendered verbatim.',
+    'description: Restore creates a revision whose source is #2 and keeps the rest',
+  ));
+  const result = run(['validate-author', '--manifest', 'run/author-manifest.yaml'], project);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /line 35: the value "Restore creates a revision whose source is" is cut by " #2 and keeps the rest", which YAML reads as a comment; quote the value/);
+});
+
+test('author validation accepts a quoted value that contains " #"', () => {
+  const project = temporaryFixture('pass');
+  const manifest = path.join(project, 'run', 'author-manifest.yaml');
+  const text = fs.readFileSync(manifest, 'utf8');
+  fs.writeFileSync(manifest, text.replace(
+    'description: Verify the approved helper sentence is rendered verbatim.',
+    'description: "Restore creates a revision whose source is #2 and keeps the rest"',
+  ));
+  const result = run(['validate-author', '--manifest', 'run/author-manifest.yaml'], project);
+  assert.doesNotMatch(result.stderr, /YAML reads as a comment/);
+});

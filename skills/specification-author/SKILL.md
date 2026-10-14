@@ -61,6 +61,10 @@ documents, decision records, and work-item list, and derives the run directory.
    list the vectors file in `spec_files`, and write one `decision-rule` obligation per rule
    (`source: <table path>#<rule_id>`, `DEFAULT` included). Use `review-only` only when `table-v1` cannot express
    the table, and state the reason in `assumptions`.
+   Before running `check-decision`, check the input domains themselves: `check-decision` only finds gaps inside the
+   values you declared. For every input the implementation reads from storage, a file, the system or another
+   decision, include the value for "could not be read or determined" (`unreadable`, `unknown`, `missing`) unless a
+   source rules it out, and give it a rule.
 7. Keep decision vocabulary identical across BOTH artifacts and identical to the baseline's terms.
 8. Separate reversible assumptions from policy ambiguities.
 9. For each policy ambiguity, decide what you would do and why, then ask instead of deciding:
