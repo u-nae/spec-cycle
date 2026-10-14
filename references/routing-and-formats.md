@@ -61,6 +61,9 @@ source_locators: []
 
 - Cell grammar: a literal, a list of literals, `any`, or omitted. An omitted cell follows `blank_means`
   (`any` = whole domain, `missing` = only the missing value). State the meaning; never leave it implicit.
+- Input domains: `check-decision` proves completeness only within the declared `allowed_values`. For each input the
+  implementation obtains by reading (storage, files, system state, another decision), declare the failure value
+  (`unreadable`, `unknown`, or `missing` via `blank_means`) and a rule for it, unless a source rules the failure out.
 - Numeric inputs: declare interval labels as `allowed_values` (`["< 100000", ">= 100000"]`) and use the
   same labels in cells. The evaluator treats them as an enum, so confirm the intervals partition the range.
 - After writing the table run `check-decision --table <file>`, then
