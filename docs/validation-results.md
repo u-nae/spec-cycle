@@ -45,7 +45,7 @@
 
 ## 실사용 사이클 (2026-10-28 추가)
 
-위 검사는 2026-10-13 기준이다. 그 뒤 두 프로젝트에서 `run → implement → verify` 전체 사이클을 실제로 7회 돌렸다. 아래 수치는 각 run의 `tdd-handoff.yaml`과 `verify-*.yaml`/`verification.yaml`에서 그대로 집계했다.
+위 검사는 2026-10-27에 다시 돌린 것이다. 2026-10-13 이후 두 프로젝트에서 `run → implement → verify` 전체 사이클을 실제로 7회 돌렸다. 아래 수치는 각 run의 `tdd-handoff.yaml`과 `verify-*.yaml`/`verification.yaml`에서 그대로 집계했다.
 
 | 프로젝트 | 실행 어댑터 | 작업 항목 | 날짜 | 테스트 의무 | 미커버 |
 | --- | --- | --- | --- | --- | --- |
