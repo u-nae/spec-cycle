@@ -294,6 +294,7 @@ function resolveInputsCommand(args) {
       `${config.run_root}/*/normalized-tasks.yaml`,
       `${config.run_root}/*/author-manifest-*.yaml`,
       `${config.run_root}/*/critic-pass-*.yaml`,
+      `${path.posix.dirname(config.path)}/status.json`,
     ].join('\n');
   }
   console.log(YAML.stringify(resolution, { lineWidth: 0 }));

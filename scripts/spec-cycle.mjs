@@ -14,6 +14,7 @@ let decisionModule;
 let handoffModule;
 let briefModule;
 let verifyModule;
+let statusModule;
 try {
   core = await import('./lib/core.mjs');
   detectModule = await import('./lib/detect.mjs');
@@ -23,6 +24,7 @@ try {
   handoffModule = await import('./lib/handoff.mjs');
   briefModule = await import('./lib/brief.mjs');
   verifyModule = await import('./lib/verify.mjs');
+  statusModule = await import('./lib/status.mjs');
 } catch (error) {
   if (error.code === 'ERR_MODULE_NOT_FOUND' && /'(yaml|@cucumber[^']*)'/.test(error.message)) {
     console.error(MISSING_DEPENDENCY_MESSAGE);
@@ -48,7 +50,7 @@ function usage() {
   spec-cycle.mjs set-status --task <id> --status <status> [--config <file>]
   spec-cycle.mjs resolve-handoff --task <id> [--config <file>] [--project <dir>]
   spec-cycle.mjs verify-obligations --task <id> [--out <file>] [--test-command <cmd> --test-exit-code <n>] [--human-confirmed <true|false>] [--mark-done] [--config <file>]
-  spec-cycle.mjs status [--config <file>]
+  spec-cycle.mjs status [--json] [--write] [--config <file>]
   spec-cycle.mjs normalize --out <file> [--config <file>] [--task <id>]
   spec-cycle.mjs fingerprint (--file <file>|--manifest <author-manifest>)
   spec-cycle.mjs validate-author --manifest <file>
@@ -63,35 +65,55 @@ function usage() {
   spec-cycle.mjs metrics --root <directory> [--out <file>]`);
 }
 
+// State-changing subcommands end by rewriting .spec-cycle/status.json (contracts.md "Status snapshot").
+// Read-only ones (detect, resolve-handoff, fingerprint, check-*, status, validate-fixtures, metrics) do not.
+function refresh(command, { projectRoot, configArg } = {}) {
+  statusModule.refreshStatusSnapshot({ projectRoot, configArg, command });
+}
+
+function projectArg(args) {
+  return path.resolve(optional(args, 'project') ?? process.cwd());
+}
+
 async function main() {
   const { command, args } = parseArgs(process.argv.slice(2));
   switch (command) {
     case 'init':
       initCommand(args);
+      refresh(command, { projectRoot: projectArg(args) });
       break;
     case 'detect':
       detectModule.detectCommand(args);
       break;
     case 'import-taskmaster':
       intakeTaskMasterModule.importTaskMasterCommand(args);
+      refresh(command, { configArg: optional(args, 'config') });
       break;
     case 'set-status':
       workItemsModule.setStatusCommand(args);
+      refresh(command, { configArg: optional(args, 'config') });
       break;
     case 'resolve-inputs':
       resolveInputsCommand(args);
+      refresh(command, { projectRoot: projectArg(args), configArg: optional(args, 'config') });
       break;
     case 'resolve-handoff':
       handoffModule.resolveHandoffCommand(args);
       break;
     case 'verify-obligations':
-      verifyModule.verifyObligationsCommand(args);
+      // The report is written before uncovered obligations fail the command, so the snapshot follows either way.
+      try {
+        verifyModule.verifyObligationsCommand(args);
+      } finally {
+        refresh(command, { configArg: optional(args, 'config') });
+      }
       break;
     case 'status':
-      verifyModule.statusCommand(args);
+      statusModule.statusCommand(args);
       break;
     case 'normalize':
       normalizeCommand(args);
+      refresh(command, { configArg: optional(args, 'config') });
       break;
     case 'fingerprint':
       if (optional(args, 'manifest')) console.log(authorReviewFingerprint(path.resolve(args.manifest)));
@@ -100,17 +122,21 @@ async function main() {
     case 'validate-author':
       await validateAuthorFile(path.resolve(required(args, 'manifest')));
       console.log('author manifest valid');
+      refresh(command, { projectRoot: statusModule.projectRootForArtifact(args.manifest) });
       break;
     case 'validate-critic':
       await validateCriticFile(path.resolve(required(args, 'report')), path.resolve(required(args, 'manifest')));
       console.log('critic report valid');
+      refresh(command, { projectRoot: statusModule.projectRootForArtifact(args.report) });
       break;
     case 'validate-decisions':
       validateDecisionLogFile(path.resolve(required(args, 'decision-log')), path.resolve(required(args, 'manifest')));
       console.log('decision log valid');
+      refresh(command, { projectRoot: statusModule.projectRootForArtifact(args['decision-log']) });
       break;
     case 'build-handoff':
       await buildHandoff(args);
+      refresh(command, { projectRoot: statusModule.projectRootForArtifact(required(args, 'out')) });
       break;
     case 'validate-fixtures':
       await validateFixtures(path.resolve(required(args, 'root')));
@@ -123,6 +149,7 @@ async function main() {
       break;
     case 'render-brief':
       briefModule.renderBriefCommand(args);
+      refresh(command, { projectRoot: statusModule.projectRootForArtifact(required(args, 'handoff')) });
       break;
     case 'check-plan':
       briefModule.checkPlanCommand(args);

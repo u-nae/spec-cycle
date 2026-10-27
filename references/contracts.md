@@ -370,6 +370,81 @@ id substituted) appears in a file matched by `verification.test_globs`. `--mark-
 work-item list only when `uncovered_count` is 0 and the tests passed (`exit_code` 0) or a human confirmed them
 (validator). Nothing in the report is edited by hand; the test evidence travels as flags.
 
+## Status snapshot — `.spec-cycle/status.json`
+
+A machine-readable view of the whole project for tools that watch the gate (a Claude Code mod, a status
+line). Written by `status --json --write`, and rewritten as the last step of every state-changing
+subcommand: `init`, `import-taskmaster`, `resolve-inputs`, `normalize`, `validate-author`, `validate-critic`,
+`validate-decisions`, `build-handoff`, `render-brief`, `set-status`, `verify-obligations`. Read-only
+subcommands (`detect`, `resolve-handoff`, `fingerprint`, `check-decision`, `decision-vectors`, `check-plan`,
+`status` without `--write`, `validate-fixtures`, `metrics`) never write it. `status --json` prints the same
+document to stdout without writing; `status` without flags prints the YAML table exactly as before.
+
+```jsonc
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-10-27T06:00:00.000Z",
+  "generated_by": "spec-cycle@0.4.0 build-handoff",   // plugin version and the subcommand that wrote it
+  "config": { "path": ".spec-cycle/config.yaml", "intake": "native", "execution": "superpowers",
+              "run_root": ".spec-cycle/runs", "work_items": "docs/work-items.yaml" },
+  "inputs": [                                           // cheap freshness check: compare with the files' mtimes
+    { "path": "docs/PRD.md", "mtime_ms": 1791953472870 },
+    { "path": "docs/work-items.yaml", "mtime_ms": 1791953472871 },
+    { "path": "docs/decisions", "mtime_ms": 1791953472872, "kind": "dir-max" }   // newest mtime under the directory
+  ],
+  "items": [
+    {
+      "id": "W05", "parent_id": null, "title": "…",
+      "status": "pending",                              // pending | in-progress | done | deferred (as written in the list)
+      "priority": "high", "dependencies": ["W04"], "dependencies_done": true, "external_ref": null,
+      "run": {                                          // the newest run that covers the item, as `status` picks it; null without one
+        "id": "t-w05-c0dec005", "dir": ".spec-cycle/runs/t-w05-c0dec005", "updated_at": "2026-10-27T05:58:00.000Z",
+        "revision_count": 1, "max_revisions": 2,        // from the newest author manifest; null when it has none
+        "critic_passes": 2,
+        "verdict": "NEEDS_HUMAN",                       // newest critic report; null before the first review
+        "findings": { "critical": 0, "major": 1, "minor": 2, "note": 0 },
+        "open_questions": [                             // unanswered questions of this item only (see below)
+          { "question_id": "Q-W05-1", "question": "…", "blocking": true,
+            "recommended_default": "A", "recommended_label": "…", "recommendation_rationale": "…" }
+        ],
+        "route": "GHERKIN",
+        "artifacts": {                                  // repository-relative; null or [] when absent
+          "handoff": ".spec-cycle/runs/…/tdd-handoff.yaml", "brief": null, "verification": null,
+          "decision_log": ".spec-cycle/runs/…/decision-log.yaml",
+          "critic_reports": [".spec-cycle/runs/…/critic-pass-1.yaml", ".spec-cycle/runs/…/critic-pass-2.yaml"],
+          "spec_files": [".spec-cycle/runs/…/specs/revision-1/task-W05.feature"]
+        }
+      },
+      "handoff": { "usable": true, "errors": [], "warnings": [], "obligations_total": 7 },   // null unless the run has a handoff
+      "verification": { "covered": 5, "total": 7, "checked_at": "…", "tests": "passed", "status_written": null }   // null without verification.yaml
+    }
+  ]
+}
+```
+
+Rules (validator):
+
+- `items` follow the order of the work-item list; a subtask (`W05.1`) comes right after its parent. An empty
+  list yields `items: []` (the YAML `status` still fails on it).
+- `handoff.usable`, `errors` and `warnings` are `resolve-handoff`'s own result; `obligations_total` counts the
+  handoff's obligations whose `task_id` is the item (all of them when they carry none).
+- `open_questions` come from `questions.yaml` when the run has one, else from the newest critic report; a
+  question is open when `answer` is null and the decision log has no entry for it. `recommended_label` is the
+  label of the `recommended_default` option.
+- `verification.tests` is `passed` (`test_command.exit_code` 0), `failed` (non-zero), `confirmed`
+  (`human_confirmed_tests: true` with no command), else `unknown`.
+- `inputs` lists only files that exist; `kind: dir-max` marks a directory whose `mtime_ms` is the newest
+  mtime of the directory and everything under it.
+- The file is written to a temporary name and renamed, so a reader never sees a partial document. A write
+  failure leaves the subcommand's exit code and stdout as they were and prints one line to stderr:
+  `spec-cycle: status snapshot not written (<reason>)`. A subcommand that takes an artifact path instead of a
+  project (`validate-*`, `build-handoff`, `render-brief`) finds the project by the nearest ancestor holding
+  `.spec-cycle/config.yaml`; with none, nothing is written and nothing is said.
+- `status.json` is a local derivative (its mtimes differ per machine): ignore it in git. `resolve-inputs`
+  lists it in `gitignore_hint`.
+- The snapshot adds no judgement: every field is read from the files above or computed by the function the
+  corresponding subcommand uses. Readers must not treat it as a source of truth separate from those files.
+
 ## Invariants
 
 - Keep every source task in the author manifest, including PASS tasks.
