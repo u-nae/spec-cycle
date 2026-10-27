@@ -42,7 +42,7 @@
 | revise | GHERKIN | REVISE | 비평의 누락 검출과 제한된 수정 |
 | taskmaster | GHERKIN | READY | Task Master import feeds the gate |
 
-## 실사용 사이클 (2026-10-28 추가)
+## 실사용 사이클 (2026-10-27 추가)
 
 위 검사는 2026-10-13 기준이다. 그 뒤 두 프로젝트에서 `run → implement → verify` 전체 사이클을 실제로 7회 돌렸다. 아래 수치는 각 run의 `tdd-handoff.yaml`과 `verify-*.yaml`/`verification.yaml`에서 그대로 집계했다.
 
