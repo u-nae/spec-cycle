@@ -106,7 +106,11 @@ obligation을 배정했는지 `check-plan` 으로 검사합니다. `inline` 은 
 
 `verification.test_globs` 의 테스트 파일에서 `obligation_id` 를 찾아 커버리지를 보고합니다. `test_command` 가 있으면
 실행하고, 없으면 테스트를 돌렸는지 묻습니다. **미커버가 0이고 테스트가 통과(또는 확인)했을 때만** `done` 이 됩니다.
-`status` 서브커맨드로 작업 항목 × 최신 판정 × handoff × 커버리지를 표로 볼 수 있습니다.
+`status` 서브커맨드로 작업 항목 × 최신 판정 × handoff × 커버리지를 표로 볼 수 있습니다. `status --json` 은 같은 내용을
+기계용 스냅숏(`references/contracts.md` 의 "Status snapshot")으로 출력하고, `--write` 를 붙이면 `.spec-cycle/status.json` 에
+원자적으로 씁니다. 상태를 바꾸는 서브커맨드(init, resolve-inputs, normalize, validate-*, build-handoff, render-brief,
+set-status, verify-obligations)는 끝날 때 이 파일을 다시 씁니다. 로컬 파생물이므로 `.gitignore` 에
+`.spec-cycle/status.json` 을 넣습니다(`resolve-inputs` 의 `gitignore_hint` 에도 포함).
 
 ## 설정 예
 

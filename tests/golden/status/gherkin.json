@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "<generated_at>",
+  "generated_by": "spec-cycle@<version> status",
+  "config": {
+    "path": "input/config.yaml",
+    "intake": "native",
+    "execution": "inline",
+    "run_root": "run",
+    "work_items": "input/work-items.yaml"
+  },
+  "inputs": [
+    {
+      "path": "input/PRD.md",
+      "mtime_ms": 0
+    },
+    {
+      "path": "input/work-items.yaml",
+      "mtime_ms": 0
+    },
+    {
+      "path": "input/decisions",
+      "mtime_ms": 0,
+      "kind": "dir-max"
+    }
+  ],
+  "items": [
+    {
+      "id": "2",
+      "parent_id": null,
+      "title": "Enforce session entry window",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [],
+      "dependencies_done": true,
+      "external_ref": null,
+      "run": {
+        "id": "fixture-gherkin",
+        "dir": "run/fixture-gherkin",
+        "updated_at": "<updated_at>",
+        "revision_count": 0,
+        "max_revisions": 2,
+        "critic_passes": 1,
+        "verdict": "READY",
+        "findings": {
+          "critical": 0,
+          "major": 0,
+          "minor": 0,
+          "note": 0
+        },
+        "open_questions": [],
+        "route": "GHERKIN",
+        "artifacts": {
+          "handoff": null,
+          "brief": null,
+          "verification": null,
+          "decision_log": null,
+          "critic_reports": [
+            "run/fixture-gherkin/critic-pass-1.yaml"
+          ],
+          "spec_files": []
+        }
+      },
+      "handoff": null,
+      "verification": null
+    }
+  ]
+}

@@ -1,15 +1,15 @@
 # 검증 결과
 
-2026-10-13 기준. Claude Code 2.1.296, Node.js v22.19.0, spec-cycle 0.2.0에서 아래 명령을 실제로 실행해 얻은 출력이다.
+2026-10-27 기준. Claude Code 2.1.311, Node.js v22.19.0, spec-cycle 0.4.0에서 아래 명령을 실제로 실행해 얻은 출력이다.
 
 ## 실행한 검사
 
 | 검사 | 결과 |
 | --- | --- |
 | `claude plugin validate . --strict` | 통과 (`Validation passed`) |
-| `claude --plugin-dir . plugin details spec-cycle` | 0.2.0 로드. `Skills (7)` 로 7개(implement, init, run, specification-author, specification-critic, verify, work-items)를 나열한다 — 커맨드 4개(implement, init, run, verify)와 스킬 3개를 합친 수이며 커맨드 절은 따로 없다. 에이전트 1개(specification-critic-agent), 훅·MCP·LSP 0개. 상시 토큰 비용 약 847 tok. 구성 요소별 `disable-model-invocation` 표시는 없다 |
+| `claude --plugin-dir . plugin details spec-cycle` | 0.4.0 로드. `Skills (7)` 로 7개(implement, init, run, specification-author, specification-critic, verify, work-items)를 나열한다 — 커맨드 4개(implement, init, run, verify)와 스킬 3개를 합친 수이며 커맨드 절은 따로 없다. 에이전트 1개(specification-critic-agent), 훅·MCP·LSP 0개. 상시 토큰 비용 약 847 tok. 구성 요소별 `disable-model-invocation` 표시는 없다 |
 | `claude --plugin-dir . -p "…Skill 도구로 부를 수 있는 spec-cycle: 항목을 나열…"` | 커맨드 4개에 `disable-model-invocation: true` 를 단 뒤 `NONE`. 같은 질문을 플래그 없는 커맨드로 돌린 대조 실행은 `spec-cycle:implement`, `init`, `run`, `verify` 를 나열했다. 모델이 부를 수 있는 진입점은 없다 |
-| `npm test` | 138개 중 138 통과, 0 실패 |
+| `npm test` | 175개 중 175 통과, 0 실패 |
 | `npm run validate:fixtures` | 7/7 fixture PASS (`taskmaster`만 `taskmaster_import: PASS`, 나머지는 `null`) |
 | `npm run metrics` | 7개 fixture 전체 완료 (runs 7, tasks 7, traceability_completeness 1, validation_failure_rate 0) |
 | `npm run validate` | 위 plugin validate, plugin details, `npm test`를 연속 실행해 모두 통과 |
@@ -27,6 +27,7 @@
 - handoff: TDD handoff 생성과 인수 기준 coverage
 - brief: 구현 브리프 생성
 - verify: 의무 대비 테스트 존재 확인
+- status: `status --json` 스키마, `--write` 원자 쓰기, 상태 변경 서브커맨드의 자동 갱신, 쓰기 실패 시 종료 코드 보존, 미응답 질문 선별, handoff 무효화 반영, fixture 7종 골든(`tests/golden/status/`)
 
 ## 의미 fixture
 
@@ -44,7 +45,7 @@
 
 ## 실사용 사이클 (2026-10-28 추가)
 
-위 검사는 2026-10-13 기준이다. 그 뒤 두 프로젝트에서 `run → implement → verify` 전체 사이클을 실제로 7회 돌렸다. 아래 수치는 각 run의 `tdd-handoff.yaml`과 `verify-*.yaml`/`verification.yaml`에서 그대로 집계했다.
+위 검사는 2026-10-27에 다시 돌린 것이다. 2026-10-13 이후 두 프로젝트에서 `run → implement → verify` 전체 사이클을 실제로 7회 돌렸다. 아래 수치는 각 run의 `tdd-handoff.yaml`과 `verify-*.yaml`/`verification.yaml`에서 그대로 집계했다.
 
 | 프로젝트 | 실행 어댑터 | 작업 항목 | 날짜 | 테스트 의무 | 미커버 |
 | --- | --- | --- | --- | --- | --- |
