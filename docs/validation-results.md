@@ -43,9 +43,27 @@
 | revise | GHERKIN | REVISE | 비평의 누락 검출과 제한된 수정 |
 | taskmaster | GHERKIN | READY | Task Master import feeds the gate |
 
+## 실사용 사이클 (2026-10-28 추가)
+
+위 검사는 2026-10-13 기준이다. 그 뒤 두 프로젝트에서 `run → implement → verify` 전체 사이클을 실제로 7회 돌렸다. 아래 수치는 각 run의 `tdd-handoff.yaml`과 `verify-*.yaml`/`verification.yaml`에서 그대로 집계했다.
+
+| 프로젝트 | 실행 어댑터 | 작업 항목 | 날짜 | 테스트 의무 | 미커버 |
+| --- | --- | --- | --- | --- | --- |
+| fianchetto (Swift macOS 앱) | superpowers | W20 | 2026-10-14 | 29 | 0 |
+| fianchetto | superpowers | W21 | 2026-10-16 | 35 | 0 |
+| fianchetto | superpowers | W22 | 2026-10-19 | 47 | 0 |
+| 외주 커머스·WMS 백엔드 (Spring) | inline | CP03 | 2026-10-18 | 31 | 0 |
+| 외주 커머스·WMS 백엔드 | inline | CP04 | 2026-10-18 | 31 | 0 |
+| 외주 커머스·WMS 백엔드 | inline | CP05 | 2026-10-19 | 16 | 0 |
+| 외주 커머스·WMS 백엔드 | inline | CP06 | 2026-10-26 | 33 | 0 |
+
+- 합계: 7회, 테스트 의무 222개, 미커버 0. 작업 항목 상태는 모두 `verify` 통과 뒤에만 `done`이 됐다.
+- 그 이전 run(fianchetto W01~W19·W28·W29, 외주 백엔드 CP02)은 전신인 fianchetto-spec-gate로 돌렸다. 게이트(작성·비평·handoff)까지만 거쳤고, implement·verify 단계는 없었다.
+- 실사용이 도구를 고친 사례: fianchetto 결정표 비평에서 "평가기의 공백 0은 선언된 입력 안에서만 완전하다"는 지적이 나왔다. 이 지적은 작성 규칙("읽어서 얻는 입력은 읽기 실패 값과 그 규칙을 선언한다", 2026-10-14)으로 들어갔다.
+
 ## 검증하지 않은 것
 
-- 실제 `run → implement(superpowers) → verify` 사이클은 한 번도 실행하지 않았다. 첫 실전 검증은 fianchetto W20이다(스펙 §14).
+- `command` 실행 어댑터(Task Master 연동)로는 아직 실사용 사이클을 돌리지 않았다. 위 7회는 `superpowers`와 `inline` 어댑터다.
 - 실제 Task Master 프로젝트에서의 수입은 0건이다. 수입은 fixture의 tasks.json으로만 확인했다.
 - 커버리지 검사는 존재 확인이며 테스트의 의미적 충분성은 보증하지 않는다.
 - fixture 결과와 지표는 표본일 뿐이며 실제 운영 가치의 증거가 아니다.
