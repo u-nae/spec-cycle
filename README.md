@@ -191,11 +191,14 @@ npm run metrics           # fixture 지표 → reports/fixture-metrics.yaml
 
 결과는 [`docs/validation-results.md`](docs/validation-results.md)에 있습니다.
 
-## 현재 제한 사항
+## 실사용
 
-- Task Master `tasks.json` 으로 상태를 되돌려 쓰지 않습니다(단방향 수입).
-- DMN 1.3 XML 내보내기와 외부 DMN/FEEL 엔진이 없습니다.
-- 커버리지는 **존재 검사**입니다. 테스트 파일에 `obligation_id` 가 있다는 것만 확인하며, 테스트가 obligation을
-  올바르게 증명하는지는 리뷰(또는 사람)의 몫입니다.
-- 실전 표본이 0건입니다. fixture 결과는 동작 검증일 뿐 효과의 근거가 아닙니다.
-- hook 자동화는 없습니다. 모든 진입점을 사람이 호출합니다.
+2026-11-02 기준, 세 프로젝트에서 `run → implement → verify` 전체 사이클을 21회 돌렸습니다. 테스트 의무 631개가
+모두 커버됐습니다. 내역은 [`docs/validation-results.md`](docs/validation-results.md#실사용-사이클)에 있습니다.
+
+## 범위
+
+- Task Master는 단방향으로 수입합니다. 상태는 작업 항목 목록에서 관리합니다.
+- 결정표는 자체 평가기 `table-v1` 로 계산합니다. DMN 1.3 XML 내보내기와 외부 FEEL 엔진 연동은 범위 밖입니다.
+- 커버리지는 **존재 검사**입니다. 테스트 파일에 `obligation_id` 가 있는지 확인하고, 테스트 내용은 코드 리뷰에서 봅니다.
+- 모든 진입점은 사람이 직접 호출합니다.

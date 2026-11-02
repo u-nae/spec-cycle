@@ -43,27 +43,23 @@
 | revise | GHERKIN | REVISE | 비평의 누락 검출과 제한된 수정 |
 | taskmaster | GHERKIN | READY | Task Master import feeds the gate |
 
-## 실사용 사이클 (2026-10-28 추가)
+## 실사용 사이클
 
-위 검사는 2026-10-27에 다시 돌린 것이다. 2026-10-13 이후 두 프로젝트에서 `run → implement → verify` 전체 사이클을 실제로 7회 돌렸다. 아래 수치는 각 run의 `tdd-handoff.yaml`과 `verify-*.yaml`/`verification.yaml`에서 그대로 집계했다.
+위 검사는 2026-10-27에 다시 돌린 것이다. 2026-10-14부터 2026-11-02까지 프로젝트 세 곳에서 `run → implement → verify` 전체 사이클을 실제로 21회 돌렸다. 수치는 각 run의 `tdd-handoff.yaml`과 verify 보고서에서 집계했다. 프로젝트 이름과 작업 항목은 적지 않는다.
 
-| 프로젝트 | 실행 어댑터 | 작업 항목 | 날짜 | 테스트 의무 | 미커버 |
-| --- | --- | --- | --- | --- | --- |
-| fianchetto (Swift macOS 앱) | superpowers | W20 | 2026-10-14 | 29 | 0 |
-| fianchetto | superpowers | W21 | 2026-10-16 | 35 | 0 |
-| fianchetto | superpowers | W22 | 2026-10-19 | 47 | 0 |
-| 외주 커머스·WMS 백엔드 (Spring) | inline | CP03 | 2026-10-18 | 31 | 0 |
-| 외주 커머스·WMS 백엔드 | inline | CP04 | 2026-10-18 | 31 | 0 |
-| 외주 커머스·WMS 백엔드 | inline | CP05 | 2026-10-19 | 16 | 0 |
-| 외주 커머스·WMS 백엔드 | inline | CP06 | 2026-10-26 | 33 | 0 |
+| 프로젝트 유형 | 실행 어댑터 | 사이클 | 테스트 의무 | 미커버 |
+| --- | --- | --- | --- | --- |
+| macOS 앱 (Swift) | superpowers | 3 | 111 | 0 |
+| 백엔드 (Spring) | inline | 9 | 334 | 0 |
+| 백엔드 (Kotlin Spring Boot) | superpowers | 9 | 186 | 0 |
+| 합계 | | 21 | 631 | 0 |
 
-- 합계: 7회, 테스트 의무 222개, 미커버 0. 작업 항목 상태는 모두 `verify` 통과 뒤에만 `done`이 됐다.
-- 그 이전 run(fianchetto W01~W19·W28·W29, 외주 백엔드 CP02)은 전신인 fianchetto-spec-gate로 돌렸다. 게이트(작성·비평·handoff)까지만 거쳤고, implement·verify 단계는 없었다.
-- 실사용이 도구를 고친 사례: fianchetto 결정표 비평에서 "평가기의 공백 0은 선언된 입력 안에서만 완전하다"는 지적이 나왔다. 이 지적은 작성 규칙("읽어서 얻는 입력은 읽기 실패 값과 그 규칙을 선언한다", 2026-10-14)으로 들어갔다.
+- 모든 사이클이 verify의 커버리지 검사를 통과했다. 테스트 결과는 0.3.0부터 `--test-command`/`--test-exit-code` 또는 `--human-confirmed` 플래그로 보고서에 남긴다.
+- 그 이전 run은 전신 플러그인으로 게이트(작성·비평·handoff)를 돌렸고, 위 집계에는 넣지 않았다.
+- 실사용이 도구를 고친 사례: 한 프로젝트의 결정표 비평에서 "평가기의 공백 0은 선언된 입력 안에서만 완전하다"는 지적이 나왔다. 이 지적은 작성 규칙("읽어서 얻는 입력은 읽기 실패 값과 그 규칙을 선언한다", 2026-10-14)으로 들어갔다.
 
-## 검증하지 않은 것
+## 적용 범위
 
-- `command` 실행 어댑터(Task Master 연동)로는 아직 실사용 사이클을 돌리지 않았다. 위 7회는 `superpowers`와 `inline` 어댑터다.
-- 실제 Task Master 프로젝트에서의 수입은 0건이다. 수입은 fixture의 tasks.json으로만 확인했다.
-- 커버리지 검사는 존재 확인이며 테스트의 의미적 충분성은 보증하지 않는다.
-- fixture 결과와 지표는 표본일 뿐이며 실제 운영 가치의 증거가 아니다.
+- 실사용 21회는 `superpowers`와 `inline` 실행 어댑터로 돌렸다. `command` 어댑터와 Task Master 수입은 fixture로 확인했다.
+- 커버리지 검사는 테스트 파일에 obligation id가 있는지 확인한다. 테스트 내용은 코드 리뷰에서 본다.
+- fixture와 지표는 동작 계약을 확인하는 용도다.
