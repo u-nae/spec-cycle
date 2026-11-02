@@ -197,5 +197,7 @@ npm run metrics           # fixture 지표 → reports/fixture-metrics.yaml
 - DMN 1.3 XML 내보내기와 외부 DMN/FEEL 엔진이 없습니다.
 - 커버리지는 **존재 검사**입니다. 테스트 파일에 `obligation_id` 가 있다는 것만 확인하며, 테스트가 obligation을
   올바르게 증명하는지는 리뷰(또는 사람)의 몫입니다.
-- 실전 표본이 0건입니다. fixture 결과는 동작 검증일 뿐 효과의 근거가 아닙니다.
+- 실사용 표본은 2026-11-02 기준 세 프로젝트의 `run → implement → verify` 21회입니다(테스트 의무 631개, 미커버 0).
+  대조군 없는 작은 표본이라 효과의 근거로는 부족하고, fixture 결과는 동작 검증일 뿐입니다. 내역은
+  [`docs/validation-results.md`](docs/validation-results.md#실사용-사이클)에 있습니다.
 - hook 자동화는 없습니다. 모든 진입점을 사람이 호출합니다.
