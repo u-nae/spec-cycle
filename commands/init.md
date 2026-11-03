@@ -31,6 +31,8 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs detect [--project <dir>]
 
 출력 YAML 의 `task_master`, `superpowers`, `baseline_candidates`, `decision_records_candidate`,
 `test_glob_candidates`, `existing_config`, `suggested` 를 읽는다. 직접 파일을 탐색해 이를 대체하지 않는다.
+`superpowers: null` 은 `claude plugin list` 와 플러그인 캐시로 모두 확인하지 못했다는 뜻이다. 이때 `suggested.execution`
+은 `inline` 이지만, execution 어댑터는 사람에게 묻는다.
 
 - `existing_config.spec_cycle` 이 있으면 **여기서 멈추고** 기존 설정 경로를 보고한다. 덮어쓰지 않는다.
 - `existing_config.spec_gate` 가 있으면 `--adopt <그 경로>` 를 제안한다. 채택하면 기존 값을 복사하고

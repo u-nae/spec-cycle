@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
@@ -37,11 +38,36 @@ function markdownIn(projectRoot, directory, predicate = () => true) {
     .sort();
 }
 
-export function detect({ projectRoot, exec = defaultExec }) {
+// Claude Code keeps installed plugins under <config dir>/plugins/cache/<marketplace>/<plugin>/<version>/.
+function cachedSuperpowers(configDir) {
+  const cache = path.join(configDir, 'plugins', 'cache');
+  if (!fs.existsSync(cache)) return false;
+  for (const marketplace of fs.readdirSync(cache, { withFileTypes: true })) {
+    if (!marketplace.isDirectory()) continue;
+    const plugin = path.join(cache, marketplace.name, 'superpowers');
+    if (!fs.existsSync(plugin)) continue;
+    for (const version of fs.readdirSync(plugin, { withFileTypes: true })) {
+      if (version.isDirectory() && fs.existsSync(path.join(plugin, version.name, 'skills', 'writing-plans', 'SKILL.md'))) return true;
+    }
+  }
+  return false;
+}
+
+// `claude plugin list` is the answer when it runs. When it fails (a transient API error, say) the plugin
+// cache is the second look; with neither, the result is null (unknown), never false (not installed).
+function superpowersStatus(exec, configDir) {
+  const plugins = probe(exec, 'claude', ['plugin', 'list']);
+  if (plugins.status === 0) return { installed: /superpowers@/.test(plugins.stdout), source: 'plugin-list' };
+  if (cachedSuperpowers(configDir)) return { installed: true, source: 'plugin-cache' };
+  return { installed: null, source: 'unavailable' };
+}
+
+export function detect({
+  projectRoot, exec = defaultExec, configDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'),
+}) {
   const cli = probe(exec, 'which', ['task-master']).status === 0;
   const tasksFile = existingFile(projectRoot, '.taskmaster/tasks/tasks.json');
-  const plugins = probe(exec, 'claude', ['plugin', 'list']);
-  const superpowers = plugins.status === 0 && /superpowers@/.test(plugins.stdout);
+  const { installed: superpowers, source: superpowersSource } = superpowersStatus(exec, configDir);
 
   const baselineCandidates = [
     ...['docs/PRD.md', 'docs/TECH_STACK.md'].filter((file) => existingFile(projectRoot, file)),
@@ -56,6 +82,7 @@ export function detect({ projectRoot, exec = defaultExec }) {
   return {
     task_master: { cli, tasks_file: tasksFile },
     superpowers,
+    superpowers_source: superpowersSource,
     baseline_candidates: baselineCandidates,
     decision_records_candidate: fs.statSync(decisionDirectory, { throwIfNoEntry: false })?.isDirectory()
       ? 'docs/decisions'
@@ -67,7 +94,7 @@ export function detect({ projectRoot, exec = defaultExec }) {
     },
     suggested: {
       intake: cli && tasksFile ? 'taskmaster' : 'native',
-      execution: superpowers ? 'superpowers' : 'inline',
+      execution: superpowers === true ? 'superpowers' : 'inline',
     },
   };
 }

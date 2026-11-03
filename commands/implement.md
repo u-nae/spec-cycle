@@ -58,9 +58,14 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs set-status --task <id> --status in-progr
 
 ### superpowers
 
-1. `node PLUGIN_ROOT/scripts/spec-cycle.mjs detect` 를 실행한다. `superpowers: false` 면 이 절을 건너뛰고
-   **inline** 절로 내려간다. 최종 보고의 **첫 줄**에 "superpowers 미설치로 inline 어댑터로 내려갔다"고 적는다.
-   config 는 바꾸지 않는다.
+1. `node PLUGIN_ROOT/scripts/spec-cycle.mjs detect` 를 실행한다.
+   - `superpowers: false` 면 이 절을 건너뛰고 **inline** 절로 내려간다. 최종 보고의 **첫 줄**에
+     "superpowers 미설치로 inline 어댑터로 내려갔다"고 적는다.
+   - `superpowers: null` 은 설치 여부를 확인하지 못했다는 뜻이다(`superpowers_source: unavailable`). 미설치로
+     보지 않고 config 를 따라 이 절을 계속한다. 최종 보고의 **첫 줄**에 "superpowers 설치 여부를 확인하지 못해
+     설정값을 따랐다"고 적는다. 2번의 `Skill` 호출이 그 스킬을 찾지 못하면 그때 **inline** 으로 내려가고
+     첫 줄에 그 사실을 적는다.
+   - config 는 바꾸지 않는다.
 2. `Skill` 도구로 `superpowers:writing-plans` 를 호출한다. spec 은 `<run_dir>/spec-brief.md` 다. 호출할 때
    다음 세 규약을 문장 그대로 전달한다.
    - "brainstorming은 명세 게이트가 대신했다. READY handoff가 승인된 spec이다. brainstorming을 호출하지 않는다."

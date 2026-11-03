@@ -33,7 +33,7 @@ test('render-brief includes every obligation id and every accepted specification
   for (const heading of ['## 1. 작업 항목', '## 2. 승인된 명세', '## 3. Test obligations', '## 4. 결정 벡터', '## 5. 결정', '## 6. Non-blocking notes', '## 7. 검증 계약']) {
     assert.ok(brief.includes(`\n${heading}\n`), heading);
   }
-  assert.match(brief, /^# 명세 브리프 — 3 Determine membership discount\n/);
+  assert.match(brief, /^# 명세 브리프: 3 Determine membership discount\n/);
   assert.ok(handoff.test_obligations.length > 0);
   for (const obligation of handoff.test_obligations) assert.ok(brief.includes(obligation.obligation_id), obligation.obligation_id);
   for (const spec of handoff.accepted_specifications) assert.ok(brief.includes(spec.path), spec.path);

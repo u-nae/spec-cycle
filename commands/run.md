@@ -35,11 +35,13 @@ node PLUGIN_ROOT/scripts/spec-cycle.mjs resolve-inputs [--project <dir>] [--conf
 **진행 전에 반드시 처리한다.**
 
 - **설정 없음** — `init` 안내가 나온다. 프로젝트의 기준 문서를 확인해 `init` 을 실행하고 다시 해석한다.
-- **`notices`** — 추적성 결함이다. 사람에게 묻지 않고 작업 항목의 `source_refs` 를 고친 뒤 다시 해석한다.
+- **`notices`** — 추적성 결함이다. 사람에게 묻지 않고 작업 항목의 `source_refs` 나 `acceptance_refs` 를 기준 문서에
+  맞게 고친 뒤 다시 해석한다. 기준 문서에 없는 수용 기준 id 는 대개 오타다.
 - **`warnings`** — `AskUserQuestion` 으로 확인을 받고 나서 진행한다. 작업 항목이 `pending` 을 벗어났다면
   산출물은 게이트가 아니라 사후 문서화가 된다. 사람이 그래도 진행하라고 하면 진행하고 최종 보고에 남긴다.
-- **`git.ignored: false` 이고 `gitignore_hint` 존재** — run 산출물이 git 추적 디렉터리에 떨어진다고
-  알리고 hint 를 제시한다. **`.gitignore` 를 직접 수정하지 않는다.**
+- **`gitignore_hint` 존재** — 중간 산출물 중 아직 git 이 무시하지 않는 경로가 있다. hint 에는 그 줄만 담긴다.
+  알리고 hint 를 제시한다. **`.gitignore` 를 직접 수정하지 않는다.** run 디렉터리 자체(`git.ignored: false`)는
+  handoff·명세·결정 로그를 커밋하기 위해 무시하지 않는 것이 정상이다.
 - **`run_dir_status: exists`** — 같은 입력으로 이미 시작된 run 이다. 새 run 이 아니라 revision 또는
   resume 으로 다룬다.
 

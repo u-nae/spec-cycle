@@ -140,7 +140,7 @@ function renderBrief({ handoffFile }) {
   const ids = tasks.map((task) => String(task.task_id)).join(', ');
 
   const out = [];
-  out.push(`# 명세 브리프 — ${tasks.length > 1 ? ids : first.task_id} ${first.title ?? ''}`.trimEnd(), '');
+  out.push(`# 명세 브리프: ${tasks.length > 1 ? ids : first.task_id} ${first.title ?? ''}`.trimEnd(), '');
   out.push('## 1. 작업 항목', '');
   out.push(...table(
     ['task_id', 'title', 'route', 'acceptance_refs'],

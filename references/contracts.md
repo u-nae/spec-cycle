@@ -71,7 +71,9 @@ items:
 ```
 
 Every work item needs a non-empty `source_refs` that points into a baseline document or decision
-record; `resolve-inputs` reports violations as `notices` for the agent to fix before authoring.
+record; `resolve-inputs` reports violations as `notices` for the agent to fix before authoring. Each
+`acceptance_refs` id must also occur in the text of a baseline document or decision record as a whole
+identifier (`AC-ASSIST-E` does not match inside `AC-ASSIST-E2E`); an id that occurs nowhere is a notice too.
 
 ## Normalized input
 
@@ -312,6 +314,21 @@ critic_report: .spec-cycle/runs/<run-id>/critic-pass-1.yaml
 non_blocking_notes: []
 ```
 
+### What each stage compares
+
+The source block is checked twice, against different things:
+
+- Authoring and critique (`validate-author`, `validate-critic`, `build-handoff`) compare every fingerprint in the
+  manifest's `source`: each baseline document, the decision-record set, and the whole work-item file. Any edit
+  to the work-item file during the run, a status change or another item included, makes the manifest stale.
+- `resolve-handoff` (used by `implement` and `verify`) does not hash the work-item file. For the work item it
+  compares only the definitional fields with the run's `normalized-tasks.yaml`: `title`, `description`,
+  `details`, `test_strategy`, `dependencies`, `source_refs`, `acceptance_refs`. A status change passes; an
+  edit to any of those fields is an error, so wording fixes to the item wait until after `verify`. A changed or
+  added baseline document is an error. A changed decision-record set is a warning, except records this run
+  promoted after the handoff (their text names the run id): those are listed in `promoted_decision_records`
+  and warn only when the set without them still differs from the handoff.
+
 ## Spec brief — `<run_dir>/spec-brief.md`
 
 `render-brief --handoff <file> --out <file>` renders the brief deterministically from the handoff: the same
@@ -441,7 +458,7 @@ Rules (validator):
   project (`validate-*`, `build-handoff`, `render-brief`) finds the project by the nearest ancestor holding
   `.spec-cycle/config.yaml`; with none, nothing is written and nothing is said.
 - `status.json` is a local derivative (its mtimes differ per machine): ignore it in git. `resolve-inputs`
-  lists it in `gitignore_hint`.
+  lists it in `gitignore_hint` until git ignores it.
 - The snapshot adds no judgement: every field is read from the files above or computed by the function the
   corresponding subcommand uses. Readers must not treat it as a source of truth separate from those files.
 

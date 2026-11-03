@@ -86,11 +86,11 @@ function decisionRecordFiles(projectRoot, directory) {
 }
 
 // A decision record directory is fingerprinted as a set, so adding, removing, or editing any record
-// invalidates a run that was authored against the previous set.
-function decisionRecordsFingerprint(projectRoot, directory) {
+// invalidates a run that was authored against the previous set. `exclude` leaves records out of the set.
+function decisionRecordsFingerprint(projectRoot, directory, exclude = []) {
   const hash = crypto.createHash('sha256');
   hash.update('decision-records\0');
-  for (const file of decisionRecordFiles(projectRoot, directory)) {
+  for (const file of decisionRecordFiles(projectRoot, directory).filter((name) => !exclude.includes(name))) {
     hash.update(`${file}\0${sha256File(path.join(projectRoot, file))}\0`);
   }
   return hash.digest('hex');
@@ -213,6 +213,27 @@ function normalizeCommand(args) {
   console.log(outputFile);
 }
 
+// True when `id` occurs in `text` as a whole identifier: not preceded or followed by a letter, digit, `_` or `-`.
+function mentionsId(text, id) {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![A-Za-z0-9_-])${escaped}(?![A-Za-z0-9_-])`).test(text);
+}
+
+// The intermediate-artifact lines of the gitignore hint whose files git does not ignore yet. Each line is
+// probed with a file it would match inside this run (git check-ignore needs a path, not a pattern).
+function missingIgnoreLines(projectRoot, runDir, config) {
+  const lines = [
+    [`${config.run_root}/*/normalized-tasks.yaml`, `${runDir}/normalized-tasks.yaml`],
+    [`${config.run_root}/*/author-manifest-*.yaml`, `${runDir}/author-manifest-revision-0.yaml`],
+    [`${config.run_root}/*/critic-pass-*.yaml`, `${runDir}/critic-pass-1.yaml`],
+    [`${path.posix.dirname(config.path)}/status.json`, `${path.posix.dirname(config.path)}/status.json`],
+  ];
+  const probe = spawnSync('git', ['check-ignore', '--no-index', '--', ...lines.map(([, file]) => file)], { cwd: projectRoot, encoding: 'utf8' });
+  if (probe.status !== 0 && probe.status !== 1) return lines.map(([line]) => line);
+  const ignored = new Set((probe.stdout ?? '').split('\n').filter(Boolean));
+  return lines.filter(([, file]) => !ignored.has(file)).map(([line]) => line);
+}
+
 function gitStatusFor(projectRoot, relativePath) {
   const inside = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: projectRoot, encoding: 'utf8' });
   if (inside.status !== 0) return { inside_work_tree: false, ignored: null };
@@ -249,6 +270,10 @@ function resolveInputsCommand(args) {
   }
   const decisionFiles = new Set(decisionRecordFiles(projectRoot, config.decision_records));
   const knownSources = new Set([...config.baseline, ...decisionFiles]);
+  const sourceTexts = [...knownSources]
+    .map((file) => path.join(projectRoot, file))
+    .filter((full) => fs.statSync(full, { throwIfNoEntry: false })?.isFile())
+    .map((full) => fs.readFileSync(full, 'utf8'));
   for (const task of selected) {
     if (task.source_refs.length === 0) {
       notices.push(`${task.task_id} has no source_refs; add baseline locators to the work item before authoring.`);
@@ -256,6 +281,11 @@ function resolveInputsCommand(args) {
     for (const ref of task.source_refs) {
       if (!knownSources.has(sourceRefFile(ref))) {
         notices.push(`${task.task_id} source_ref ${ref} does not point to a baseline document or decision record.`);
+      }
+    }
+    for (const ref of task.acceptance_refs) {
+      if (!sourceTexts.some((text) => mentionsId(text, ref))) {
+        notices.push(`${task.task_id} acceptance_ref ${ref} does not appear in any baseline document or decision record.`);
       }
     }
   }
@@ -289,13 +319,13 @@ function resolveInputsCommand(args) {
     ].filter(Boolean).join(' '),
   };
   if (resolution.git.inside_work_tree && resolution.git.ignored === false) {
-    resolution.gitignore_hint = [
-      '# spec gate intermediate artifacts (keep tdd-handoff.yaml, accepted specs, and decision logs)',
-      `${config.run_root}/*/normalized-tasks.yaml`,
-      `${config.run_root}/*/author-manifest-*.yaml`,
-      `${config.run_root}/*/critic-pass-*.yaml`,
-      `${path.posix.dirname(config.path)}/status.json`,
-    ].join('\n');
+    const missing = missingIgnoreLines(projectRoot, runDir, config);
+    if (missing.length > 0) {
+      resolution.gitignore_hint = [
+        '# spec gate intermediate artifacts (keep tdd-handoff.yaml, accepted specs, and decision logs)',
+        ...missing,
+      ].join('\n');
+    }
   }
   console.log(YAML.stringify(resolution, { lineWidth: 0 }));
   return resolution;
@@ -967,6 +997,7 @@ export {
   resolveArtifact,
   walkFiles,
   decisionRecordFiles,
+  decisionRecordsFingerprint,
   sourceSnapshot,
   readWorkItems,
   flattenWorkItems,
