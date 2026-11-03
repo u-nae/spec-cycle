@@ -60,7 +60,7 @@ export function refreshFingerprint(project, manifest = 'run/author-manifest.yaml
 export function workItemProject(items, { decisions = {}, extraBaseline = {} } = {}) {
   const project = temporaryDirectory('project');
   fs.mkdirSync(path.join(project, 'docs', 'decisions'), { recursive: true });
-  fs.writeFileSync(path.join(project, 'docs', 'PRD.md'), '# PRD\n\n## F05\nRecord every change.\n');
+  fs.writeFileSync(path.join(project, 'docs', 'PRD.md'), '# PRD\n\n## F05\nRecord every change.\n\nA04: every confirmed change leaves a revision.\n');
   fs.writeFileSync(path.join(project, 'docs', 'TECH_STACK.md'), '# Tech\n');
   for (const [name, body] of Object.entries(extraBaseline)) fs.writeFileSync(path.join(project, 'docs', name), body);
   for (const [name, body] of Object.entries(decisions)) fs.writeFileSync(path.join(project, 'docs', 'decisions', name), body);

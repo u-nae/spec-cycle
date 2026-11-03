@@ -117,6 +117,49 @@ test('resolve-inputs reports untraceable work items as notices for the agent to 
   assert.ok(foreign.notices.some((notice) => notice.includes('docs/OTHER.md#x')));
 });
 
+test('resolve-inputs flags an acceptance_ref that no baseline document or decision record defines', () => {
+  const project = workItemProject(
+    [
+      { id: 'W01', title: 'Typo', source_refs: ['docs/PRD.md#F05'], acceptance_refs: ['AC-ASSIST-E'] },
+      { id: 'W02', title: 'Exact', source_refs: ['docs/PRD.md#F05'], acceptance_refs: ['AC-ASSIST-E2E'] },
+      { id: 'W03', title: 'Decided', source_refs: ['docs/PRD.md#F05'], acceptance_refs: ['AC-DEC-1'] },
+    ],
+    { decisions: { '0001-x.md': '# 0001\n\nAC-DEC-1 holds.\n' } },
+  );
+  fs.writeFileSync(path.join(project, 'docs', 'PRD.md'), '# PRD\n\n## F05\n| AC-ASSIST-E2E | end to end |\n');
+  const typo = YAML.parse(run(['resolve-inputs', '--task', 'W01'], project).stdout);
+  assert.deepEqual(typo.notices, [
+    'W01 acceptance_ref AC-ASSIST-E does not appear in any baseline document or decision record.',
+  ]);
+  assert.deepEqual(typo.warnings, []);
+  assert.deepEqual(YAML.parse(run(['resolve-inputs', '--task', 'W02'], project).stdout).notices, []);
+  assert.deepEqual(YAML.parse(run(['resolve-inputs', '--task', 'W03'], project).stdout).notices, []);
+});
+
+test('resolve-inputs offers only the gitignore lines the repository does not ignore yet', () => {
+  const project = workItemProject(defaultItems);
+  assert.equal(spawnSync('git', ['init', '-q'], { cwd: project }).status, 0);
+  const hintOf = () => YAML.parse(run(['resolve-inputs', '--task', 'W01'], project).stdout);
+  const fresh = hintOf();
+  assert.equal(fresh.git.inside_work_tree, true);
+  assert.equal(fresh.git.ignored, false);
+  assert.deepEqual(fresh.gitignore_hint.split('\n').slice(1), [
+    '.spec-cycle/runs/*/normalized-tasks.yaml',
+    '.spec-cycle/runs/*/author-manifest-*.yaml',
+    '.spec-cycle/runs/*/critic-pass-*.yaml',
+    '.spec-cycle/status.json',
+  ]);
+  fs.writeFileSync(path.join(project, '.gitignore'), '.spec-cycle/runs/*/normalized-tasks.yaml\n.spec-cycle/status.json\n');
+  assert.deepEqual(hintOf().gitignore_hint.split('\n').slice(1), [
+    '.spec-cycle/runs/*/author-manifest-*.yaml',
+    '.spec-cycle/runs/*/critic-pass-*.yaml',
+  ]);
+  fs.appendFileSync(path.join(project, '.gitignore'), '.spec-cycle/runs/*/author-manifest-*.yaml\n.spec-cycle/runs/*/critic-pass-*.yaml\n');
+  const quiet = hintOf();
+  assert.equal(quiet.git.ignored, false);
+  assert.equal(quiet.gitignore_hint, undefined);
+});
+
 test('resolve-inputs accepts a source_ref that points at a decision record', () => {
   const project = workItemProject(
     [{ id: 'W01', title: 'Uses a decision', source_refs: ['docs/decisions/0001-x.md'] }],

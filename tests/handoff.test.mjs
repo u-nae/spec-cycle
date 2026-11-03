@@ -147,3 +147,31 @@ test('resolve-handoff is unusable when a baseline document was added since the h
   assert.equal(value.usable, false);
   assert.deepEqual(value.errors, ['baseline docs/ARCH.md was added since the handoff; rerun the gate']);
 });
+
+test('resolve-handoff does not warn about decision records this run promoted', () => {
+  const { project, handoffFile } = handoffProject();
+  setTime(handoffFile, 1_000_000);
+  const decisions = path.join(project, 'docs', 'decisions');
+  fs.writeFileSync(path.join(decisions, '0034-x.md'), '# 0034 Keep it\n\n- 상태: 확정 (명세 게이트 t-w01-aaaa, Q-W01-1)\n');
+  let { result, value } = resolution(project);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(value.warnings, []);
+  assert.deepEqual(value.promoted_decision_records, ['docs/decisions/0034-x.md']);
+  fs.writeFileSync(path.join(decisions, '0035-y.md'), '# 0035 From elsewhere\n');
+  ({ result, value } = resolution(project));
+  assert.equal(value.usable, true);
+  assert.deepEqual(value.warnings, ['decision records changed since the handoff: docs/decisions/0035-y.md']);
+  assert.deepEqual(value.promoted_decision_records, ['docs/decisions/0034-x.md']);
+});
+
+test('resolve-handoff still warns when a record was removed alongside the promotion', () => {
+  const project = workItemProject(defaultItems.map((item) => ({ ...item })), { decisions: { '0001-old.md': '# 0001\n' } });
+  const { handoffFile } = writeRun(project, 't-w01-aaaa');
+  setTime(handoffFile, 1_000_000);
+  const decisions = path.join(project, 'docs', 'decisions');
+  fs.rmSync(path.join(decisions, '0001-old.md'));
+  fs.writeFileSync(path.join(decisions, '0034-x.md'), '# 0034\n\n- 상태: 확정 (명세 게이트 t-w01-aaaa, Q-W01-1)\n');
+  const { value } = resolution(project);
+  assert.equal(value.usable, true);
+  assert.deepEqual(value.warnings, ['decision records changed since the handoff: (unknown)']);
+});

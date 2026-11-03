@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from 'node:util';
 import YAML from 'yaml';
 import { ValidationError, asArray, optional, portablePath, readYaml, required } from './util.mjs';
 import { loadConfig } from './config.mjs';
-import { decisionRecordFiles, flattenWorkItems, readWorkItems, sourceSnapshot } from './core.mjs';
+import { decisionRecordFiles, decisionRecordsFingerprint, flattenWorkItems, readWorkItems, sourceSnapshot } from './core.mjs';
 import { definitionalFields } from './work-items.mjs';
 import { HANDOFF_FILE, NORMALIZED_FILE, latestRunFor } from './runs.mjs';
 const FIELD_ORDER = ['title', 'description', 'details', 'test_strategy', 'dependencies', 'source_refs', 'acceptance_refs'];
@@ -66,11 +66,21 @@ function resolveHandoff({ projectRoot, configArg = null, taskId }) {
     }
   }
 
+  resolution.promoted_decision_records = [];
   if (source.decision_records?.fingerprint !== snapshot.decision_records.fingerprint) {
     // The handoff stores no per-file hashes, so "newer than the handoff" stands in for "new or edited".
     const newer = decisionRecordFiles(projectRoot, config.decision_records)
       .filter((file) => fs.statSync(path.join(projectRoot, file)).mtimeMs > found.mtimeMs);
-    warnings.push(`decision records changed since the handoff: ${newer.length > 0 ? newer.join(', ') : '(unknown)'}`);
+    // run.md promotes the run's decisions after the handoff; a promoted record names the run id
+    // (integration.md "결정 기록 승격"), the same test render-brief uses to list them.
+    const promoted = newer.filter((file) => fs.readFileSync(path.join(projectRoot, file), 'utf8').includes(found.name));
+    resolution.promoted_decision_records = promoted;
+    // Quiet only when the promotion is the whole change: without the promoted records the set must hash
+    // to the handoff's value, so a record removed or edited elsewhere is still reported.
+    if (decisionRecordsFingerprint(projectRoot, config.decision_records, promoted) !== source.decision_records?.fingerprint) {
+      const external = newer.filter((file) => !promoted.includes(file));
+      warnings.push(`decision records changed since the handoff: ${external.length > 0 ? external.join(', ') : '(unknown)'}`);
+    }
   }
 
   if (current?.status === 'done') warnings.push(`work item ${taskId} is already done`);

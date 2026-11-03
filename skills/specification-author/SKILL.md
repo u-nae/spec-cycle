@@ -42,8 +42,9 @@ documents, decision records, and work-item list, and derives the run directory.
 4. Stop and resolve every entry in `warnings` with the human before authoring. A work item that already left
    `pending` means the gate is running after implementation; the output would be after-the-fact
    documentation.
-5. If `git.ignored` is `false` and a `gitignore_hint` is present, tell the human that run artifacts land in a
-   tracked directory and offer the hint. Do not edit `.gitignore` yourself.
+5. If a `gitignore_hint` is present, tell the human which intermediate artifacts git does not ignore yet and
+   offer the hint; it lists only those lines. Do not edit `.gitignore` yourself. The run directory itself stays
+   tracked (`git.ignored: false` is expected) so the handoff, specs and decision log can be committed.
 6. Run the reported `normalize_command` verbatim, substituting the real plugin root.
 7. Do not reuse an output directory that already contains a manifest. `run_dir_status: exists` means this
    exact input set was already started — treat it as a resume or revision, not a new run.
